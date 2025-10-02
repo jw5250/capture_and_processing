@@ -3,26 +3,27 @@
     #Parameters:
         #name:file name
         #lineSeparator:Separator used when making command to tshark.
-
 def getByteStream(name, lineSeparator):
     bytesOfPackets = []
     with open(name, "r") as f:#Read the file as a set of bytes
         #How can I read a set of bytes at once?
             #Don't need to do that, I just need to
         #While reading the file...
-        while((line := f.readline().strip("\n")) != ''):#If reaching EOF, immediately terminate. I have no idea why this still behaves properly without the "!= ''"
-            fileBytes = []
+        while((line := f.readline().strip("\n")) != ""):#If reaching EOF, immediately terminate. I have no idea why this still behaves properly without the "!= ''"
+            fileBytes = ""
 
             while(line != lineSeparator):#Create a sequence of bytes, represented as a sequence of characters.
                 #print(line)
                 bytesAsChars = line.split()
                 del bytesAsChars[0]
-                fileBytes.extend(bytesAsChars)
-                line = f.readline().strip("\n")
-                if(line == ''):
+                for byte in bytesAsChars:#Ugly hack that will result in a full sequence of bytes represented as a string.
+                    fileBytes += byte
+                line = f.readline().strip("\n")#Look at the next thing.
+                if(line == ""):
                     break #EOF,
             bytesOfPackets.append(fileBytes)
-            #print()
+
+
         for packet in bytesOfPackets:
             print(packet)
             print()
