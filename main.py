@@ -14,11 +14,15 @@ Returns:
         num_files (int): Number of files to create.
         num_bytes (int): Number of bytes to save for each packet.
 """
+
+
 def collect_input():
     # get the number of files to create
     while True:
         try:
-            num_files = int(input("Enter the number of files to create (1-3): "))
+            num_files = int(
+                input("Enter the number of files to create (1-3): ")
+            )
             if 1 <= num_files <= 3:
                 break
             else:
@@ -29,7 +33,12 @@ def collect_input():
     # get the number of bytes to save for each packet
     while True:
         try:
-            num_bytes = int(input("Enter the number of bytes to save for each packet (0-64): "))
+            num_bytes = int(
+                input(
+                    "Enter the number of bytes to save for each packet "
+                    "(0-64): "
+                )
+            )
             if 0 <= num_bytes <= 64:
                 break
             else:
