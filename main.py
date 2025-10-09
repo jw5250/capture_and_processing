@@ -1,7 +1,12 @@
+import re
+import subprocess
+import sys
+from pathlib import Path
+
 """
 authors: Anishya Thinesh (amt2622@rit.edu), <add names + emails here>
+         Evan Lonczak    (egl1669@rit.edu)
 """
-
 
 """
 Prompt the user to specify:
@@ -14,6 +19,10 @@ Returns:
         num_files (int): Number of files to create.
         num_bytes (int): Number of bytes to save for each packet.
 """
+
+# regex to grab hex lines from tshark to get offset and the 16 bytes on that line
+# this is from GenAI, I hate regex
+HEX_LINE_RE = re.compile(r"^\s*([0-9A-Fa-f]{4})\s+((?:[0-9A-Fa-f]{2}\s+){1,16})(?:.*)?$")
 
 
 def collect_input():
@@ -49,7 +58,93 @@ def collect_input():
     return num_files, num_bytes
 
 
+def run(cmd):
+    try:
+        return subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, check=True)
+    except FileNotFoundError:
+        print("Error: tshark not found on PATH. Install Wireshark/tshark or add it to PATH.", file=sys.stderr)
+        sys.exit(1)
+    except subprocess.CalledProcessError as e:
+        print(f"Command failed: {' '.join(cmd)}", file=sys.stderr)
+        if e.stderr:
+            print(e.stderr.decode(errors="ignore"), file=sys.stderr)
+        sys.exit(1)
+
+
+def capture_to_pcap(interface, count, pcap_path):
+    cmd = [
+        "tshark",
+        "-i", interface,
+        "-c", str(count),
+        "-w", str(pcap_path),
+        "-q",
+        "-n",
+    ]
+    print(f"[+] Capturing {count} packets on {interface} -> {pcap_path.name}")
+    run(cmd)
+
+
+def parse_packets_from_pcap(pcap_path):
+    cmd = ["tshark", "-r", str(pcap_path), "-x", "-q", "-n"]
+    proc = run(cmd)
+    text = proc.stdout.decode(errors="ignore").splitlines()
+
+    packets = []
+    current = []
+
+    for line in text:
+        m = HEX_LINE_RE.match(line)
+        if m:
+            offset = m.group(1)
+            bytes_str = m.group(2)
+            # split on whitespace to get 1–16 tokens like 'ff', 'ab', ...
+            tokens = [tok.lower() for tok in bytes_str.split()]
+            # detect new packet when offset resets to 0000 and we already have data
+            if offset.lower() == "0000" and current:
+                packets.append(current)
+                current = []
+            current.extend(tokens)
+        else:
+            # non-hex line, we can skip
+            pass
+
+    if current:
+        packets.append(current)
+
+    return packets
+
+
+def write_text_dump(packets, out_path: Path):
+    """
+    Writes packets to text so that each packet looks like:
+    0000  aa bb cc ... (16 bytes)
+    0010  ...
+    ...
+    """
+    with out_path.open("w", encoding="utf-8") as f:
+        for idx, pkt in enumerate(packets):
+            # 16 bytes per line with increasing 4-hex-digit offsets
+            for i in range(0, len(pkt), 16):
+                line_bytes = pkt[i:i + 16]
+                offset = f"{i:04x}"
+                f.write(f"{offset}  {' '.join(line_bytes)}\n")
+            f.write("sep\n")
+    print(f"[+] Wrote text dump: {out_path.name}")
+
+
 if __name__ == "__main__":
     # collect user input
     num_files, num_bytes = collect_input()
+    base_dir = Path(".").resolve()
+    for i in range(num_files):
+        pcap = base_dir / f"capture{i}.pcapng"
+        text_dump = base_dir / f"capture{i}.txt"
+        capture_to_pcap("en0", num_bytes, pcap)
+        packets = parse_packets_from_pcap(pcap)
+        if not packets:
+            print(f"[!] No packets parsed from {pcap.name}")
+            continue
+
+        write_text_dump(packets, text_dump)
+
     print(f"Capturing {num_files} files with {num_bytes} bytes per packet...")
