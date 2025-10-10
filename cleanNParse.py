@@ -9,25 +9,19 @@ def getByteStream(name, lineSeparator):
         #How can I read a set of bytes at once?
             #Don't need to do that, I just need to
         #While reading the file...
-        while((line := f.readline().strip("\n")) != ""):#If reaching EOF, immediately terminate. I have no idea why this still behaves properly without the "!= ''"
+        while((line := f.readline().strip("\n")) != ""):
             fileBytes = ""
 
-            while(line != lineSeparator):#Create a sequence of bytes, represented as a sequence of characters.
+            while(line != lineSeparator):
                 #print(line)
                 bytesAsChars = line.split()
-                del bytesAsChars[0]
-                for byte in bytesAsChars:#Ugly hack that will result in a full sequence of bytes represented as a string.
+                del bytesAsChars[0] # Remove the line number from the file.
+                for byte in bytesAsChars:
                     fileBytes += byte
-                line = f.readline().strip("\n")#Look at the next thing.
+                line = f.readline().strip("\n")
                 if(line == ""):
-                    break #EOF,
+                    break
             bytesOfPackets.append(fileBytes)
-
-
-        for packet in bytesOfPackets:
-            print(packet)
-            print()
-        print(len(bytesOfPackets))
     return bytesOfPackets
 
 def main():
