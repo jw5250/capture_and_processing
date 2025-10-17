@@ -24,8 +24,23 @@ def getByteStream(name, lineSeparator):
             bytesOfPackets.append(fileBytes)
     return bytesOfPackets
 
+#Assumes the file is a valid k12 file.
+def getByteStreamK12(name):
+    bytesOfPackets = []
+    with open(name, "r") as f:#Read the file as a set of bytes
+        while(line := f.readline()):
+            if (len(line) > 0) and (line[0] == "|"):
+                #Parse packet.
+                line = line.replace("|", "")#Remove this.
+                subStrings = line.split()
+                bytesOfPackets.append(subStrings[1])
+    return bytesOfPackets
+
 def main():
-    getByteStream("testPackets.txt", "sep")
+    packets = getByteStreamK12("testFile.txt")
+    for p in packets:
+        print(p)
+    print(len(packets))
 
 if __name__ == "__main__":
     main()
