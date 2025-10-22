@@ -74,12 +74,12 @@ def run(cmd):
         sys.exit(1)
 
 
-def capture_to_pcap(interface, count, pcap_path):
+def capture_to_pcap(interface, bytes, pcap_path):
     '''
-    Capture packets on the specified interface and save to pcap file.
+    Capture 100 packets on the specified interface and save to pcap file.
     Arguments:
     - interface (str): Network interface to capture on.
-    - count (int): Number of packets to capture.
+    - count (int): Number of bytes to capture per packet.
     - pcap_path (Path): Path to save the pcap file.
 
     Returns:
@@ -89,12 +89,12 @@ def capture_to_pcap(interface, count, pcap_path):
         "tshark",
         "-i", interface,
         "-c", str(100),
-        "-s", str(count),
+        "-s", str(bytes),
         "-w", str(pcap_path),
         "-q",
         "-n",
     ]
-    print(f"""[+] Capturing 100 packets with {count} bytes each on
+    print(f"""[+] Capturing 100 packets with {bytes} bytes each on
           {interface} -> {pcap_path.name}""")
     run(cmd)
 
