@@ -88,12 +88,14 @@ def capture_to_pcap(interface, count, pcap_path):
     cmd = [
         "tshark",
         "-i", interface,
-        "-c", str(count),
+        "-c", str(100),
+        "-s", str(count),
         "-w", str(pcap_path),
         "-q",
         "-n",
     ]
-    print(f"[+] Capturing {count} packets on {interface} -> {pcap_path.name}")
+    print(f"""[+] Capturing 100 packets with {count} bytes each on
+          {interface} -> {pcap_path.name}""")
     run(cmd)
 
 
