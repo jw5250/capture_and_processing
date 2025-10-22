@@ -8,24 +8,25 @@ authors: Anishya Thinesh (amt2622@rit.edu), <add names + emails here>
          Evan Lonczak    (egl1669@rit.edu)
 """
 
-"""
-Prompt the user to specify:
-
-1. The number of files to create (must be between 1 and 3).
-2. The number of bytes to save for each packet (must be between 0 and 64).
-
-Returns:
-    tuple:
-        num_files (int): Number of files to create.
-        num_bytes (int): Number of bytes to save for each packet.
-"""
-
-# regex to grab hex lines from tshark to get offset and the 16 bytes on that line
+# regex to grab hex lines from tshark to get offset and the 16 bytes on that
+# line
 # this is from GenAI, I hate regex
-HEX_LINE_RE = re.compile(r"^\s*([0-9A-Fa-f]{4})\s+((?:[0-9A-Fa-f]{2}\s+){1,16})(?:.*)?$")
+HEX_LINE_RE = re.compile(
+    r"^\s*([0-9A-Fa-f]{4})\s+((?:[0-9A-Fa-f]{2}\s+){1,16})(?:.*)?$")
 
 
 def collect_input():
+    """
+    Prompt the user to specify:
+
+    1. The number of files to create (must be between 1 and 3).
+    2. The number of bytes to save for each packet (must be between 0 and 64).
+
+    Returns:
+        tuple:
+            num_files (int): Number of files to create.
+            num_bytes (int): Number of bytes to save for each packet.
+    """
     # get the number of files to create
     while True:
         try:
@@ -60,9 +61,11 @@ def collect_input():
 
 def run(cmd):
     try:
-        return subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, check=True)
+        return subprocess.run(cmd, stdout=subprocess.PIPE,
+                              stderr=subprocess.PIPE, check=True)
     except FileNotFoundError:
-        print("Error: tshark not found on PATH. Install Wireshark/tshark or add it to PATH.", file=sys.stderr)
+        print("Error: tshark not found on PATH. Install Wireshark/tshark or "
+              "add it to PATH.", file=sys.stderr)
         sys.exit(1)
     except subprocess.CalledProcessError as e:
         print(f"Command failed: {' '.join(cmd)}", file=sys.stderr)
@@ -72,6 +75,16 @@ def run(cmd):
 
 
 def capture_to_pcap(interface, count, pcap_path):
+    '''
+    Capture packets on the specified interface and save to pcap file.
+    Arguments:
+    - interface (str): Network interface to capture on.
+    - count (int): Number of packets to capture.
+    - pcap_path (Path): Path to save the pcap file.
+
+    Returns:
+        None
+    '''
     cmd = [
         "tshark",
         "-i", interface,
@@ -85,6 +98,15 @@ def capture_to_pcap(interface, count, pcap_path):
 
 
 def parse_packets_from_pcap(pcap_path):
+    '''
+    Parse packets from a pcap file into a list of packets, each represented as
+      a list of byte strings.
+    Arguments:
+    - pcap_path (Path): Path to the pcap file.
+    Returns:
+        List[List[str]]: List of packets, each packet is a list of byte
+        strings.
+    '''
     cmd = ["tshark", "-r", str(pcap_path), "-x", "-q", "-n"]
     proc = run(cmd)
     text = proc.stdout.decode(errors="ignore").splitlines()
@@ -99,7 +121,8 @@ def parse_packets_from_pcap(pcap_path):
             bytes_str = m.group(2)
             # split on whitespace to get 1–16 tokens like 'ff', 'ab', ...
             tokens = [tok.lower() for tok in bytes_str.split()]
-            # detect new packet when offset resets to 0000 and we already have data
+            # detect new packet when offset resets to 0000 and we already have
+            # data
             if offset.lower() == "0000" and current:
                 packets.append(current)
                 current = []
@@ -119,6 +142,13 @@ def write_text_dump(packets, out_path: Path):
     Writes packets to text so that each packet looks like:
     0000  aa bb cc ... (16 bytes)
     0010  ...
+    sep
+    Arguments:
+    - packets (List[List[str]]): List of packets, each packet is a list of
+    byte strings.
+    - out_path (Path): Path to output text file.
+    Returns:
+        None
     ...
     """
     with out_path.open("w", encoding="utf-8") as f:
@@ -147,4 +177,3 @@ if __name__ == "__main__":
             continue
 
         write_text_dump(packets, text_dump)
-
