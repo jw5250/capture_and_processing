@@ -135,6 +135,7 @@ def write_text_dump(packets, out_path: Path):
 if __name__ == "__main__":
     # collect user input
     num_files, num_bytes = collect_input()
+    print(f"Capturing {num_files} files with {num_bytes} bytes per packet...")
     base_dir = Path(".").resolve()
     for i in range(num_files):
         pcap = base_dir / f"capture{i}.pcapng"
@@ -147,4 +148,3 @@ if __name__ == "__main__":
 
         write_text_dump(packets, text_dump)
 
-    print(f"Capturing {num_files} files with {num_bytes} bytes per packet...")
