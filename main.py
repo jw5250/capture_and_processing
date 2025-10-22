@@ -2,6 +2,7 @@ import re
 import subprocess
 import sys
 from pathlib import Path
+from pprint import pprint
 
 """
 authors: Anishya Thinesh (amt2622@rit.edu), <add names + emails here>
@@ -169,13 +170,20 @@ if __name__ == "__main__":
     num_files, num_bytes = collect_input()
     print(f"Capturing {num_files} files with {num_bytes} bytes per packet...")
     base_dir = Path(".").resolve()
+    # array with all captured packets across files
+    packets = []
     for i in range(num_files):
+        # name paths
         pcap = base_dir / f"capture{i}.pcapng"
         text_dump = base_dir / f"capture{i}.txt"
+
         capture_to_pcap("en0", num_bytes, pcap)
-        packets = parse_packets_from_pcap(pcap)
-        if not packets:
+        # parse packets and add to global list
+        packets_from_file = parse_packets_from_pcap(pcap)
+        if not packets_from_file:
             print(f"[!] No packets parsed from {pcap.name}")
             continue
+        else:
+            packets.extend(packets_from_file)
 
         write_text_dump(packets, text_dump)
