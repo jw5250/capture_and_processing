@@ -2,7 +2,7 @@ import re
 import subprocess
 import sys
 from pathlib import Path
-from pprint import pprint
+
 
 """
 authors: Anishya Thinesh (amt2622@rit.edu), <add names + emails here>
@@ -165,6 +165,25 @@ def write_text_dump(packets, out_path: Path):
     print(f"[+] Wrote text dump: {out_path.name}")
 
 
+def parse_info(packets):
+    """
+    Parses the following from captured packets:
+    - Total number of packets captured.
+    - Total # of 802.3 and DIX Ethernet frames.
+    - Avg size of the Ethernet data field.
+    - Number of IPv4 and IPv6 packets.
+    - Total number of TCP, UDP, and ICMP packets.
+    Returns:
+        tuple: (int, int, float, int, int, int, int, int)
+    """
+    # - Total number of packets captured.
+    # - Total # of 802.3 and DIX Ethernet frames.
+    # - Avg size of the Ethernet data field.
+    # Number of IPv4 and IPv6 packets.
+    # Total number of TCP, UDP, and ICMP packets.
+    pass
+
+
 if __name__ == "__main__":
     # collect user input
     num_files, num_bytes = collect_input()
@@ -187,3 +206,4 @@ if __name__ == "__main__":
             packets.extend(packets_from_file)
 
         write_text_dump(packets, text_dump)
+    parse_info(packets)
