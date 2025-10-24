@@ -3,8 +3,10 @@ import subprocess
 import sys
 from pathlib import Path
 
+import cleanNParse
+
 """
-authors: Anishya Thinesh (amt2622@rit.edu), <add names + emails here>
+authors: Anishya Thinesh (amt2622@rit.edu), Justin Wu (jw5250@rit.edu),
          Evan Lonczak    (egl1669@rit.edu)
 """
 
@@ -24,7 +26,7 @@ Returns:
 # this is from GenAI, I hate regex
 HEX_LINE_RE = re.compile(r"^\s*([0-9A-Fa-f]{4})\s+((?:[0-9A-Fa-f]{2}\s+){1,16})(?:.*)?$")
 
-
+#Initializes the parameters defined.
 def collect_input():
     # get the number of files to create
     while True:
@@ -57,7 +59,7 @@ def collect_input():
 
     return num_files, num_bytes
 
-
+#This should run a subprocess with a command.
 def run(cmd):
     try:
         return subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, check=True)
@@ -70,7 +72,7 @@ def run(cmd):
             print(e.stderr.decode(errors="ignore"), file=sys.stderr)
         sys.exit(1)
 
-
+#Runs the actual capture command
 def capture_to_pcap(interface, count, pcap_path):
     cmd = [
         "tshark",
@@ -84,6 +86,8 @@ def capture_to_pcap(interface, count, pcap_path):
     run(cmd)
 
 
+#Runs "tshark -r <pcap_path> -x -q -n"
+    #Converts output to something that could be easily written to a .txt.
 def parse_packets_from_pcap(pcap_path):
     cmd = ["tshark", "-r", str(pcap_path), "-x", "-q", "-n"]
     proc = run(cmd)
@@ -139,12 +143,12 @@ if __name__ == "__main__":
     for i in range(num_files):
         pcap = base_dir / f"capture{i}.pcapng"
         text_dump = base_dir / f"capture{i}.txt"
-        capture_to_pcap("en0", num_bytes, pcap)
-        packets = parse_packets_from_pcap(pcap)
+        capture_to_pcap("en0", num_bytes, pcap) # Writes all data to the file stored in pcap.
+        packets = parse_packets_from_pcap(pcap) # Given pcap, parses the initial result into a new thing.
         if not packets:
             print(f"[!] No packets parsed from {pcap.name}")
             continue
 
-        write_text_dump(packets, text_dump)
-
+        write_text_dump(packets, text_dump) #Converts intermediate format from packets to a list of strings.
+        packetBytes = cleanNParse.getByteStream(text_dump, "sep") #Convert into an array of strings (finally!)
     print(f"Capturing {num_files} files with {num_bytes} bytes per packet...")
