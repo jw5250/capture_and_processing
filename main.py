@@ -2,12 +2,28 @@ import re
 import subprocess
 import sys
 from pathlib import Path
+import os
 
 
 """
 authors: Anishya Thinesh (amt2622@rit.edu), <add names + emails here>
          Evan Lonczak    (egl1669@rit.edu)
 """
+
+
+# Create a "tee" class to duplicate prints
+class Tee:
+    def __init__(self, *files):
+        self.files = files
+
+    def write(self, obj):
+        for f in self.files:
+            f.write(obj)
+
+    def flush(self):
+        for f in self.files:
+            f.flush()
+
 
 # regex to grab hex lines from tshark to get offset and the 16 bytes on that
 # line
@@ -20,44 +36,88 @@ def collect_input():
     """
     Prompt the user to specify:
 
-    1. The number of files to create (must be between 1 and 3).
-    2. The number of bytes to save for each packet (must be between 0 and 64).
+    - Whether to capture new packets or process an existing file.
+    - If processing an existing file, get the filename and validate it.
+    - If capturing new packets, get the number of files to create (1-3)
+      and the number of bytes to save per packet (0-64).
 
     Returns:
-        tuple:
-            num_files (int): Number of files to create.
-            num_bytes (int): Number of bytes to save for each packet.
+        tuple: (capture (bool), user_input (dict))
     """
-    # get the number of files to create
+    # initialize user input dictionary
+    user_input = {
+        "capture": (),
+        "existing_file": (),
+    }
+    # ask if user wants to start capture or process existing file
     while True:
-        try:
-            num_files = int(
-                input("Enter the number of files to create (1-3): ")
-            )
-            if 1 <= num_files <= 3:
-                break
-            else:
-                print("Please enter a number between 1 and 3.")
-        except ValueError:
-            print("Invalid input. Please enter an integer.")
+        # TODO: ask for EITHER pcapng or k12text file to process
+        choice = input(
+            "Do you want to (c)apture new packets "
+            "or (p)rocess existing (k12text/pcapng) file? "
+        ).strip().lower()
+        if choice in ('c', 'p'):
+            break
+        else:
+            print("Invalid choice. Please enter 'c' to capture or 'p' to"
+                  " process.")
 
-    # get the number of bytes to save for each packet
-    while True:
-        try:
-            num_bytes = int(
-                input(
-                    "Enter the number of bytes to save for each packet "
-                    "(0-64): "
+    if choice == 'p':  # process existing file
+        capture = False
+
+        # check if filename is valid
+        while True:
+            # TODO: ask for EITHER pcapng or k12text filename
+            filename = input(
+                "Enter the path to the existing (k12text/pcapng) file: "
+                "").strip()
+            if not os.path.isfile(filename):
+                print("Error: File does not exist.")
+            elif not os.access(filename, os.R_OK):
+                print("Error: File is not readable (permission denied).")
+            # TODO: pick either pcapng or k12text
+            elif not (filename.endswith(".pcapng") or
+                      filename.endswith(".k12text")):
+                print("Error: File must be a .pcapng or .k12text file.")
+            else:
+                # File is valid and readable
+                break
+
+        user_input["existing_file"] = (filename)
+        return capture, user_input
+    else:  # capture new packets
+        capture = True
+        # get the number of files to create
+        while True:
+            try:
+                num_files = int(
+                    input("Enter the number of files to create (1-3): ")
                 )
-            )
-            if 0 <= num_bytes <= 64:
-                break
-            else:
-                print("Please enter a number between 0 and 64.")
-        except ValueError:
-            print("Invalid input. Please enter an integer.")
+                if 1 <= num_files <= 3:
+                    break
+                else:
+                    print("Please enter a number between 1 and 3.")
+            except ValueError:
+                print("Invalid input. Please enter an integer.")
 
-    return num_files, num_bytes
+        # get the number of bytes to save for each packet
+        while True:
+            try:
+                num_bytes = int(
+                    input(
+                        "Enter the number of bytes to save for each packet "
+                        "(0-64): "
+                    )
+                )
+                if 0 <= num_bytes <= 64:
+                    break
+                else:
+                    print("Please enter a number between 0 and 64.")
+            except ValueError:
+                print("Invalid input. Please enter an integer.")
+        user_input["capture"] = (num_files, num_bytes)
+
+        return capture, user_input
 
 
 def run(cmd):
@@ -245,26 +305,120 @@ def parse_info(packets):
             type_counts["tcp"], type_counts["udp"], type_counts["icmp"])
 
 
+def print_summary(total_packets, eth_frame_count, avg_eth_data_size,
+                  ipv4_count, ipv6_count, tcp_count, udp_count, icmp_count):
+    """
+    Prints a summary of the packet analysis.
+    Arguments:
+    - total_packets (int): Total number of packets captured.
+    TODO fill out the rest of the arguments
+    - ipv4_count (int): Number of IPv4 packets.
+    - ipv6_count (int): Number of IPv6 packets.
+    - tcp_count (int): Number of TCP packets.
+    - udp_count (int): Number of UDP packets.
+    - icmp_count (int): Number of ICMP packets.
+    Returns:
+        None
+    """
+    print("\n--- Packet Analysis Summary ---")
+    print(f"Total packets captured: {total_packets}")
+    # TODO print other requirements
+    print(f"IPv4 packets: {ipv4_count}")
+    print(f"IPv6 packets: {ipv6_count}")
+    print(f"TCP packets: {tcp_count}")
+    print(f"UDP packets: {udp_count}")
+    print(f"ICMP packets: {icmp_count}")
+    print("--------------------------------\n")
+
+    # print summary statistics
+    # TODO fill out other requirements's statistics
+    print("--- Packet Summary Statistics ---")
+    print("Most Common Packet Type: ")
+    most_common = {
+        "IPv4": ipv4_count,
+        "IPv6": ipv6_count,
+        "TCP": tcp_count,
+        "UDP": udp_count,
+        "ICMP": icmp_count,
+    }
+    most_common_type = max(most_common, key=most_common.get)
+    print(f"  {most_common_type} ({most_common[most_common_type]} packets)")
+
+    print("Least Common Packet Type: ")
+    least_common_type = min(most_common, key=most_common.get)
+    print(f"  {least_common_type} ({most_common[least_common_type]} packets)")
+
+    print("Packet Type Distribution: ")
+    for pkt_type, count in most_common.items():
+        percentage = (count / total_packets * 100) if total_packets > 0 else 0
+        print(f"  {pkt_type}: {count} packets ({percentage:.2f}%)")
+
+    print("--------------------------------\n")
+
+
 if __name__ == "__main__":
-    # collect user input
-    num_files, num_bytes = collect_input()
-    print(f"Capturing {num_files} files with {num_bytes} bytes per packet...")
-    base_dir = Path(".").resolve()
-    # array with all captured packets across files
-    packets = []
-    for i in range(num_files):
-        # name paths
-        pcap = base_dir / f"capture{i}.pcapng"
-        text_dump = base_dir / f"capture{i}.txt"
+    with open("output.txt", "w",) as f:
+        sys.stdout = Tee(sys.stdout, f)
 
-        capture_to_pcap("en0", num_bytes, pcap)
-        # parse packets and add to global list
-        packets_from_file = parse_packets_from_pcap(pcap)
-        if not packets_from_file:
-            print(f"[!] No packets parsed from {pcap.name}")
-            continue
-        else:
-            packets.extend(packets_from_file)
+        # collect user input
+        capture, user_input = collect_input()
 
-        write_text_dump(packets, text_dump)
-    parse_info(packets)
+        # array with all captured packets across files
+        packets = []
+        if not capture:  # process existing file
+            filename = user_input["existing_file"]
+            print(f"[+] Processing existing file: {filename}...\n")
+            # TODO: process packets from file
+            # and add to global packets array
+            # and add system updates for progress!!!
+            print("[+] Processing of existing file complete.\n")
+        else:  # capture new packets
+            num_files, num_bytes = user_input["capture"]
+            print(
+                f"[+] Starting packet capture of {num_files} files "
+                f"with {num_bytes} bytes per packet...\n"
+            )
+            base_dir = Path(".").resolve()
+
+            # capture and process each file
+            for i in range(num_files):
+                # name paths
+                pcap = base_dir / f"capture{i}.pcapng"
+                text_dump = base_dir / f"capture{i}.txt"
+
+                # capture packets to pcap
+                capture_to_pcap("en0", num_bytes, pcap)
+
+                # clean packets and add to global list
+                print(f"[+] Cleaning packets from {pcap.name}...")
+                packets_from_file = parse_packets_from_pcap(pcap)
+
+                # check if any packets were parsed
+                if not packets_from_file:
+                    print(f"[!] No packets parsed from {pcap.name}")
+                    continue
+                else:
+                    packets.extend(packets_from_file)
+                print()
+
+                # We don't need to write text dump files for this assignment
+                # TODO: remove
+                # write_text_dump(packets, text_dump)
+
+            print("[+] Packet capture and cleaning complete.\n")
+
+        # parse info from all packets
+        print("[+] Analyzing packets...")
+        (total_packets, eth_frame_count, avg_eth_data_size,
+            ipv4_count, ipv6_count, tcp_count, udp_count,
+            icmp_count) = parse_info(packets)
+
+        # print summary of analysis
+        print("[+] Packet analysis complete.")
+
+        # print summary
+        print_summary(total_packets, eth_frame_count,
+                      avg_eth_data_size, ipv4_count, ipv6_count,
+                      tcp_count, udp_count, icmp_count)
+    sys.stdout = sys.__stdout__
+    print("[+] Output written to output.txt")
