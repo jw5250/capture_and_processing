@@ -4,7 +4,6 @@ import sys
 from pathlib import Path
 import os
 
-
 import cleanNParse
 import summaryStatistics
 
@@ -244,7 +243,7 @@ def write_substrings_to_file(filename, packets, numBytes):
     if numBytes == 0:
         return
 
-    numNibbles = numBytes*2
+    numNibbles = numBytes * 2
     with open(filename, "w") as f:
         for p in packets:
             packetsSaved = p[0:numNibbles]
@@ -328,7 +327,7 @@ def parse_info(packets):
 
     # - Avg size of the Ethernet data field.
     eth_data_size = summaryStatistics.get_packet_data_widths(packets)
-    avg_eth_data_size = sum(eth_data_size)/len(eth_data_size)
+    avg_eth_data_size = sum(eth_data_size) / len(eth_data_size)
 
     # Number of IPv4 and IPv6 packets.
     # Total number of TCP, UDP, and ICMP packets.
@@ -391,11 +390,16 @@ def print_summary(total_packets, eth_frame_count, avg_eth_data_size,
         percentage = (count / total_packets * 100) if total_packets > 0 else 0
         print(f"  {pkt_type}: {count} packets ({percentage:.2f}%)")
 
+    print("Ethernet Frame Distribution: ")
+    for frame_type, count in eth_frame_count.items():
+        percentage = (count / total_packets * 100) if total_packets > 0 else 0
+        print(f"  {frame_type}: {count} frames ({percentage:.2f}%)")
+
     print("--------------------------------\n")
 
 
 if __name__ == "__main__":
-    with open("output.txt", "w",) as f:
+    with open("output.txt", "w", ) as f:
         sys.stdout = Tee(sys.stdout, f)
 
         # collect user input
@@ -452,8 +456,8 @@ if __name__ == "__main__":
         # parse info from all packets
         print("[+] Analyzing packets...")
         (total_packets, eth_frame_count, avg_eth_data_size,
-            ipv4_count, ipv6_count, tcp_count, udp_count,
-            icmp_count) = parse_info(packets)
+         ipv4_count, ipv6_count, tcp_count, udp_count,
+         icmp_count) = parse_info(packets)
 
         # print summary of analysis
         print("[+] Packet analysis complete.")
