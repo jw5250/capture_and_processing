@@ -20,7 +20,7 @@ def get_packet_data_widths(packets):
     """
     #Code to convert 
     finalResult = []
-    print(type(packets))
+    #print(type(packets))
     for packet in packets:#first bound is inclusive, second is exclusive.
         #print(packet[24:28])
         if int(packet[24:28], 16) > 1500:#if the packet is ethernet II
@@ -33,7 +33,8 @@ def get_packet_data_widths(packets):
 
 def get_ethernet_data_types(packets):
     """
-    Analyzes packet types in the captured packets.
+    Counts the total amount of each ethernet packet type in the captured packets. Assumes there are only
+    DIX and 802.3 packets.
     Arguments:
     - packets (List[str]): List of packets, each packet is a byte string.
     Returns:
@@ -43,6 +44,7 @@ def get_ethernet_data_types(packets):
     types["802.3"] = 0
     types["DIX"] = 0
     for packet in packets:#first bound is inclusive, second is exclusive.
+        #print(packet[24:28])
         if int(packet[24:28], 16) > 1500:#if the packet is ethernet II
             #Each character represents one nibble, so divide by 2.
             types["DIX"] += 1            
@@ -50,10 +52,13 @@ def get_ethernet_data_types(packets):
             types["802.3"] += 1
     return types
 
-# data: assumed to be a 1d numpy array.
-    #Automatically makes a histogram. currently needs:
-        #Axes
+
 def make_histogram(packets):
+    """
+    Makes a histogram based on packet data field length.
+    Arguments:
+    - packets (List[str]): List of packets, each packet is a byte string.
+    """
     data = get_packet_data_widths(packets)
     fig, ax = plt.subplots()
     style = {'facecolor': 'none', 'edgecolor': 'C0', 'linewidth': 3}
@@ -70,4 +75,3 @@ if __name__ == "__main__":
     dictPackets = get_ethernet_data_types(packet_strings)
     print(dictPackets)
     make_histogram(packet_strings)
-    #2 + 
