@@ -6,6 +6,7 @@ import os
 
 
 import cleanNParse
+#import summaryStatistics
 
 """
 authors: Anishya Thinesh (amt2622@rit.edu), Justin Wu (jw5250@rit.edu),
@@ -136,10 +137,6 @@ def run(cmd):
             print(e.stderr.decode(errors="ignore"), file=sys.stderr)
         sys.exit(1)
 
-<<<<<<< HEAD
-#Runs the actual capture command
-def capture_to_pcap(interface, count, pcap_path):
-=======
 
 def capture_to_pcap(interface, bytes, pcap_path):
     '''
@@ -152,7 +149,6 @@ def capture_to_pcap(interface, bytes, pcap_path):
     Returns:
         None
     '''
->>>>>>> df713e39d5ae030073b5928b928f5d618d01c141
     cmd = [
         "tshark",
         "-i", interface,
@@ -366,23 +362,6 @@ def print_summary(total_packets, eth_frame_count, avg_eth_data_size,
 
 
 if __name__ == "__main__":
-<<<<<<< HEAD
-    # collect user input
-    num_files, num_bytes = collect_input()
-    base_dir = Path(".").resolve()
-    for i in range(num_files):
-        pcap = base_dir / f"capture{i}.pcapng"
-        text_dump = base_dir / f"capture{i}.txt"
-        capture_to_pcap("en0", num_bytes, pcap) # Writes all data to the file stored in pcap.
-        packets = parse_packets_from_pcap(pcap) # Given pcap, parses the initial result into a new thing.
-        if not packets:
-            print(f"[!] No packets parsed from {pcap.name}")
-            continue
-
-        write_text_dump(packets, text_dump) #Converts intermediate format from packets to a list of strings.
-        packetBytes = cleanNParse.getByteStream(text_dump, "sep") #Convert into an array of strings (finally!)
-    print(f"Capturing {num_files} files with {num_bytes} bytes per packet...")
-=======
     with open("output.txt", "w",) as f:
         sys.stdout = Tee(sys.stdout, f)
 
@@ -397,6 +376,12 @@ if __name__ == "__main__":
             # TODO: process packets from file
             # and add to global packets array
             # and add system updates for progress!!!
+            if filename.endswith(".pcapng"):
+                pass
+            elif filename.endswith("k12text"):
+                pass
+
+
             print("[+] Processing of existing file complete.\n")
         else:  # capture new packets
             num_files, num_bytes = user_input["capture"]
@@ -432,7 +417,7 @@ if __name__ == "__main__":
                 # write_text_dump(packets, text_dump)
 
             print("[+] Packet capture and cleaning complete.\n")
-
+        #print(packets) #packets_from_file contains list of lists, not a list of strings. I will modify this. -Justin
         # parse info from all packets
         print("[+] Analyzing packets...")
         (total_packets, eth_frame_count, avg_eth_data_size,
@@ -448,4 +433,3 @@ if __name__ == "__main__":
                       tcp_count, udp_count, icmp_count)
     sys.stdout = sys.__stdout__
     print("[+] Output written to output.txt")
->>>>>>> df713e39d5ae030073b5928b928f5d618d01c141
