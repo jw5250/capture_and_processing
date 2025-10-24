@@ -91,14 +91,26 @@ def collect_input():
     else:  # capture new packets
         capture = True
         # get interface to capture on
+        # list available interfaces using tshark
+        result = subprocess.run(["tshark", "-D"],
+                                capture_output=True, text=True)
+        interfaces = result.stdout.strip().split("\n")
+
+        # Display interfaces to user
+        print("Available network interfaces:")
+        for line in interfaces:
+            print(line)
+
+        # Ask user to pick one
         while True:
-            interface = input(
-                "Enter the network interface to capture on (e.g., en0): "
-            ).strip()
-            if interface:
+            choice = input(
+                "Enter the number of the interface to capture on: ").strip()
+            if choice.isdigit() and 1 <= int(choice) <= len(interfaces):
+                interface = interfaces[int(choice) - 1].split()[1].strip('()')
                 break
             else:
-                print("Invalid input. Please enter a valid network interface.")
+                print("Invalid input. "
+                      "Please enter a valid number from the list.")
 
         # get the number of files to create
         while True:
