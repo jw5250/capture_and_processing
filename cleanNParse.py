@@ -40,7 +40,7 @@ def getByteStreamK12(name):
 
 
 def main():
-    packets = getByteStreamK12("testFile.txt")
+    packets = getByteStreamK12("testFile.k12text")
     for p in packets:
         print(p)
     print(len(packets))
