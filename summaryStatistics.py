@@ -64,6 +64,7 @@ def make_histogram(packets):
     style = {'facecolor': 'none', 'edgecolor': 'C0', 'linewidth': 3}
     bins = np.array([0, 301, 601, 901, 1201, 1501])
     ax.hist(data, bins=bins, **style)
+    ax.set_xticks(np.arange(0, 1500.1, 1500/5))
     ax.set_ylabel("Number of packets")
     ax.set_xlabel("Ranges of data size")
     plt.show()
