@@ -34,7 +34,7 @@ class Tee:
 HEX_LINE_RE = re.compile(
     r"^\s*([0-9A-Fa-f]{4})\s+((?:[0-9A-Fa-f]{2}\s+){1,16})(?:.*)?$")
 
-#Initializes the parameters defined.
+
 def collect_input():
     """
     Prompt the user to specify:
@@ -80,7 +80,7 @@ def collect_input():
                 print("Error: File is not readable (permission denied).")
             # TODO: pick either pcapng or k12text
             elif not (filename.endswith(".pcapng") or
-                      filename.endswith(".k12text")):
+                      filename.endswith(".txt")):
                 print("Error: File must be a .pcapng or .k12text file.")
             else:
                 # File is valid and readable
@@ -90,6 +90,16 @@ def collect_input():
         return capture, user_input
     else:  # capture new packets
         capture = True
+        # get interface to capture on
+        while True:
+            interface = input(
+                "Enter the network interface to capture on (e.g., en0): "
+            ).strip()
+            if interface:
+                break
+            else:
+                print("Invalid input. Please enter a valid network interface.")
+
         # get the number of files to create
         while True:
             try:
@@ -118,12 +128,19 @@ def collect_input():
                     print("Please enter a number between 0 and 64.")
             except ValueError:
                 print("Invalid input. Please enter an integer.")
-        user_input["capture"] = (num_files, num_bytes)
+        user_input["capture"] = (num_files, num_bytes, interface)
 
         return capture, user_input
 
-#This should run a subprocess with a command.
+
 def run(cmd):
+    '''
+        Runs a command using subprocess and handles errors.
+        Arguments:
+        - cmd (List[str]): Command and arguments to run.
+        Returns:
+            subprocess.CompletedProcess: Result of the command execution.
+    '''
     try:
         return subprocess.run(cmd, stdout=subprocess.PIPE,
                               stderr=subprocess.PIPE, check=True)
@@ -163,8 +180,6 @@ def capture_to_pcap(interface, bytes, pcap_path):
     run(cmd)
 
 
-#Runs "tshark -r <pcap_path> -x -q -n"
-    #Converts output to something that could be easily written to a .txt.
 def parse_packets_from_pcap(pcap_path):
     '''
     Parse packets from a pcap file into a list of packets, each represented as
@@ -211,8 +226,9 @@ def parse_packets_from_pcap(pcap_path):
 
     return packetStrings
 
+
 def write_substrings_to_file(filename, packets, numBytes):
-    #In this case, nothing is written.
+    # In this case, nothing is written.
     if numBytes == 0:
         return
 
@@ -220,7 +236,7 @@ def write_substrings_to_file(filename, packets, numBytes):
     with open(filename, "w") as f:
         for p in packets:
             packetsSaved = p[0:numNibbles]
-            #Write the nth part of the packet that is numBytes long.
+            # Write the nth part of the packet that is numBytes long.
             f.write(packetsSaved + "\n")
 
 
@@ -244,13 +260,13 @@ def analyze_packet_types(packets):
     for pkt in packets:
         if len(pkt) < 14:
             continue  # Not enough data for Ethernet header
-        #Each byte is two nibbles/characters.
+        # Each byte is two nibbles/characters.
         eth_type = pkt[24:28]
         if eth_type == '0800':  # IPv4
             type_counts["ipv4"] += 1
             if len(pkt) < 23:
                 continue  # Not enough data for IP header
-            protocol = pkt[46:48]#Get the 23rd byte.
+            protocol = pkt[46:48]  # Get the 23rd byte.
             if protocol == '06':
                 type_counts["tcp"] += 1
             elif protocol == '11':
@@ -295,19 +311,20 @@ def parse_info(packets):
     total_packets = len(packets)
     # - Total # of 802.3 and DIX Ethernet frames.
 
-    num_ethernet_frame_types = summaryStatistics.get_ethernet_data_types(packets)
+    num_ethernet_frame_types = summaryStatistics.get_ethernet_data_types(
+        packets)
 
     # - Avg size of the Ethernet data field.
     eth_data_size = summaryStatistics.get_packet_data_widths(packets)
     avg_eth_data_size = sum(eth_data_size)/len(eth_data_size)
-
 
     # Number of IPv4 and IPv6 packets.
     # Total number of TCP, UDP, and ICMP packets.
     type_counts = analyze_packet_types(packets)
 
     # placeholders are 0 or 0.0
-    return (total_packets, num_ethernet_frame_types, avg_eth_data_size, type_counts["ipv4"], type_counts["ipv6"],
+    return (total_packets, num_ethernet_frame_types, avg_eth_data_size,
+            type_counts["ipv4"], type_counts["ipv6"],
             type_counts["tcp"], type_counts["udp"], type_counts["icmp"])
 
 
@@ -328,14 +345,15 @@ def print_summary(total_packets, eth_frame_count, avg_eth_data_size,
     """
     print("\n--- Packet Analysis Summary ---")
     print(f"Total packets captured: {total_packets}")
-    print(f"Total number of DIX ethernet frames: {eth_frame_count["DIX"]}")
-    print(f"Total number of 802.3 ethernet frames: {eth_frame_count["802.3"]}")
+    print(f"Total number of DIX ethernet frames: {eth_frame_count['DIX']}")
+    print(f"Total number of 802.3 ethernet frames: {eth_frame_count['802.3']}")
     print(f"Average size of an ethernet frame: {avg_eth_data_size}")
     print(f"IPv4 packets: {ipv4_count}")
     print(f"IPv6 packets: {ipv6_count}")
     print(f"TCP packets: {tcp_count}")
     print(f"UDP packets: {udp_count}")
     print(f"ICMP packets: {icmp_count}")
+
     print("--------------------------------\n")
 
     # print summary statistics
@@ -364,7 +382,6 @@ def print_summary(total_packets, eth_frame_count, avg_eth_data_size,
     print("--------------------------------\n")
 
 
-
 if __name__ == "__main__":
     with open("output.txt", "w",) as f:
         sys.stdout = Tee(sys.stdout, f)
@@ -380,13 +397,14 @@ if __name__ == "__main__":
             # TODO: process packets from file
             # and add to global packets array
             # and add system updates for progress!!!
-            if filename.endswith("k12text"):
+            if filename.endswith("txt"):
                 packets = cleanNParse.getByteStreamK12(filename)
-
+            else:  # pcapng file
+                packets = parse_packets_from_pcap(Path(filename))
 
             print("[+] Processing of existing file complete.\n")
         else:  # capture new packets
-            num_files, num_bytes = user_input["capture"]
+            num_files, num_bytes, interface = user_input["capture"]
             print(
                 f"[+] Starting packet capture of {num_files} files "
                 f"with {num_bytes} bytes per packet...\n"
@@ -400,7 +418,7 @@ if __name__ == "__main__":
                 text_dump = base_dir / f"capture{i}.txt"
 
                 # capture packets to pcap
-                capture_to_pcap("en0", num_bytes, pcap)
+                capture_to_pcap(interface, num_bytes, pcap)
 
                 # clean packets and add to global list
                 print(f"[+] Cleaning packets from {pcap.name}...")
@@ -414,11 +432,11 @@ if __name__ == "__main__":
                     packets.extend(packets_from_file)
                 print()
 
-            #write each packet to a file.
+            # write each packet to a file.
             write_substrings_to_file("packetParts.txt", packets, num_bytes)
 
             print("[+] Packet capture and cleaning complete.\n")
-        #print(packets) #packets_from_file contains list of lists, not a list of strings. I will modify this. -Justin
+
         # parse info from all packets
         print("[+] Analyzing packets...")
         (total_packets, eth_frame_count, avg_eth_data_size,
@@ -435,7 +453,6 @@ if __name__ == "__main__":
 
         # display the histogram
         summaryStatistics.make_histogram(packets)
-
 
     sys.stdout = sys.__stdout__
     print("[+] Output written to output.txt")
