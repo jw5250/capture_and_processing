@@ -165,6 +165,53 @@ def write_text_dump(packets, out_path: Path):
     print(f"[+] Wrote text dump: {out_path.name}")
 
 
+def analyze_packet_types(packets):
+    """
+    Analyzes packet types in the captured packets.
+    Arguments:
+    - packets (List[List[str]]): List of packets, each packet is a list of
+    byte strings.
+    Returns:
+        dict: Dictionary with counts of different packet types.
+    """
+    type_counts = {
+        "ipv4": 0,
+        "ipv6": 0,
+        "tcp": 0,
+        "udp": 0,
+        "icmp": 0,
+    }
+
+    for pkt in packets:
+        if len(pkt) < 14:
+            continue  # Not enough data for Ethernet header
+        eth_type = ''.join(pkt[12:14])
+        if eth_type == '0800':  # IPv4
+            type_counts["ipv4"] += 1
+            if len(pkt) < 23:
+                continue  # Not enough data for IP header
+            protocol = pkt[23]
+            if protocol == '06':
+                type_counts["tcp"] += 1
+            elif protocol == '11':
+                type_counts["udp"] += 1
+            elif protocol == '01':
+                type_counts["icmp"] += 1
+        elif eth_type == '86dd':  # IPv6
+            type_counts["ipv6"] += 1
+            if len(pkt) < 20:
+                continue  # Not enough data for IPv6 header
+            next_header = pkt[20]
+            if next_header == '06':
+                type_counts["tcp"] += 1
+            elif next_header == '11':
+                type_counts["udp"] += 1
+            elif next_header == '3a':
+                type_counts["icmp"] += 1
+
+    return type_counts
+
+
 def parse_info(packets):
     """
     Parses the following from captured packets:
@@ -174,14 +221,28 @@ def parse_info(packets):
     - Number of IPv4 and IPv6 packets.
     - Total number of TCP, UDP, and ICMP packets.
     Returns:
-        tuple: (int, int, float, int, int, int, int, int)
+        tuple: (total packets (int),
+                TODO if this is your part fill out this documentation (int),
+                TODO if this is your part fill out this documentation (float),
+                ipv4 packet count (int),
+                ipv6 packet count (int),
+                tcp packet count (int),
+                udp packet count (int),
+                icmp packet count (int))
     """
     # - Total number of packets captured.
+    total_packets = len(packets)
     # - Total # of 802.3 and DIX Ethernet frames.
+    # TODO
     # - Avg size of the Ethernet data field.
+    # TODO
     # Number of IPv4 and IPv6 packets.
     # Total number of TCP, UDP, and ICMP packets.
-    pass
+    type_counts = analyze_packet_types(packets)
+
+    # placeholders are 0 or 0.0
+    return (total_packets, 0, 0.0, type_counts["ipv4"], type_counts["ipv6"],
+            type_counts["tcp"], type_counts["udp"], type_counts["icmp"])
 
 
 if __name__ == "__main__":
