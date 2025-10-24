@@ -6,7 +6,7 @@ import os
 
 
 import cleanNParse
-#import summaryStatistics
+import summaryStatistics
 
 """
 authors: Anishya Thinesh (amt2622@rit.edu), Justin Wu (jw5250@rit.edu),
@@ -172,8 +172,8 @@ def parse_packets_from_pcap(pcap_path):
     Arguments:
     - pcap_path (Path): Path to the pcap file.
     Returns:
-        List[List[str]]: List of packets, each packet is a list of byte
-        strings.
+        List[str]: List of packets, each packet is a byte
+        string.
     '''
     cmd = ["tshark", "-r", str(pcap_path), "-x", "-q", "-n"]
     proc = run(cmd)
@@ -199,42 +199,36 @@ def parse_packets_from_pcap(pcap_path):
             # non-hex line, we can skip
             pass
 
+    packetStrings = []
     if current:
         packets.append(current)
+    for packet in packets:
+        packetString = ""
+        for byte in packet:
+            packetString += byte
+        if packetString != "":
+            packetStrings.append(packetString)
 
-    return packets
+    return packetStrings
 
+def write_substrings_to_file(filename, packets, numBytes):
+    #In this case, nothing is written.
+    if numBytes == 0:
+        return
 
-def write_text_dump(packets, out_path: Path):
-    """
-    Writes packets to text so that each packet looks like:
-    0000  aa bb cc ... (16 bytes)
-    0010  ...
-    sep
-    Arguments:
-    - packets (List[List[str]]): List of packets, each packet is a list of
-    byte strings.
-    - out_path (Path): Path to output text file.
-    Returns:
-        None
-    ...
-    """
-    with out_path.open("w", encoding="utf-8") as f:
-        for idx, pkt in enumerate(packets):
-            # 16 bytes per line with increasing 4-hex-digit offsets
-            for i in range(0, len(pkt), 16):
-                line_bytes = pkt[i:i + 16]
-                offset = f"{i:04x}"
-                f.write(f"{offset}  {' '.join(line_bytes)}\n")
-            f.write("sep\n")
-    print(f"[+] Wrote text dump: {out_path.name}")
+    numNibbles = numBytes*2
+    with open(filename, "w") as f:
+        for p in packets:
+            packetsSaved = p[0:numNibbles]
+            #Write the nth part of the packet that is numBytes long.
+            f.write(packetsSaved + "\n")
 
 
 def analyze_packet_types(packets):
     """
     Analyzes packet types in the captured packets.
     Arguments:
-    - packets (List[List[str]]): List of packets, each packet is a list of
+    - packets (List[str]): List of packets, each packet is a list of
     byte strings.
     Returns:
         dict: Dictionary with counts of different packet types.
@@ -250,12 +244,13 @@ def analyze_packet_types(packets):
     for pkt in packets:
         if len(pkt) < 14:
             continue  # Not enough data for Ethernet header
-        eth_type = ''.join(pkt[12:14])
+        #Each byte is two nibbles/characters.
+        eth_type = pkt[24:28]
         if eth_type == '0800':  # IPv4
             type_counts["ipv4"] += 1
             if len(pkt) < 23:
                 continue  # Not enough data for IP header
-            protocol = pkt[23]
+            protocol = pkt[46:48]#Get the 23rd byte.
             if protocol == '06':
                 type_counts["tcp"] += 1
             elif protocol == '11':
@@ -266,7 +261,7 @@ def analyze_packet_types(packets):
             type_counts["ipv6"] += 1
             if len(pkt) < 20:
                 continue  # Not enough data for IPv6 header
-            next_header = pkt[20]
+            next_header = pkt[40:42]
             if next_header == '06':
                 type_counts["tcp"] += 1
             elif next_header == '11':
@@ -295,18 +290,24 @@ def parse_info(packets):
                 udp packet count (int),
                 icmp packet count (int))
     """
+
     # - Total number of packets captured.
     total_packets = len(packets)
     # - Total # of 802.3 and DIX Ethernet frames.
-    # TODO
+
+    num_ethernet_frame_types = summaryStatistics.get_ethernet_data_types(packets)
+
     # - Avg size of the Ethernet data field.
-    # TODO
+    eth_data_size = summaryStatistics.get_packet_data_widths(packets)
+    avg_eth_data_size = sum(eth_data_size)/len(eth_data_size)
+
+
     # Number of IPv4 and IPv6 packets.
     # Total number of TCP, UDP, and ICMP packets.
     type_counts = analyze_packet_types(packets)
 
     # placeholders are 0 or 0.0
-    return (total_packets, 0, 0.0, type_counts["ipv4"], type_counts["ipv6"],
+    return (total_packets, num_ethernet_frame_types, avg_eth_data_size, type_counts["ipv4"], type_counts["ipv6"],
             type_counts["tcp"], type_counts["udp"], type_counts["icmp"])
 
 
@@ -327,7 +328,9 @@ def print_summary(total_packets, eth_frame_count, avg_eth_data_size,
     """
     print("\n--- Packet Analysis Summary ---")
     print(f"Total packets captured: {total_packets}")
-    # TODO print other requirements
+    print(f"Total number of DIX ethernet frames: {eth_frame_count["DIX"]}")
+    print(f"Total number of 802.3 ethernet frames: {eth_frame_count["802.3"]}")
+    print(f"Average size of an ethernet frame: {avg_eth_data_size}")
     print(f"IPv4 packets: {ipv4_count}")
     print(f"IPv6 packets: {ipv6_count}")
     print(f"TCP packets: {tcp_count}")
@@ -361,6 +364,7 @@ def print_summary(total_packets, eth_frame_count, avg_eth_data_size,
     print("--------------------------------\n")
 
 
+
 if __name__ == "__main__":
     with open("output.txt", "w",) as f:
         sys.stdout = Tee(sys.stdout, f)
@@ -376,10 +380,8 @@ if __name__ == "__main__":
             # TODO: process packets from file
             # and add to global packets array
             # and add system updates for progress!!!
-            if filename.endswith(".pcapng"):
-                pass
-            elif filename.endswith("k12text"):
-                pass
+            if filename.endswith("k12text"):
+                packets = cleanNParse.getByteStreamK12(filename)
 
 
             print("[+] Processing of existing file complete.\n")
@@ -412,9 +414,8 @@ if __name__ == "__main__":
                     packets.extend(packets_from_file)
                 print()
 
-                # We don't need to write text dump files for this assignment
-                # TODO: remove
-                # write_text_dump(packets, text_dump)
+            #write each packet to a file.
+            write_substrings_to_file("packetParts.txt", packets, num_bytes)
 
             print("[+] Packet capture and cleaning complete.\n")
         #print(packets) #packets_from_file contains list of lists, not a list of strings. I will modify this. -Justin
@@ -431,5 +432,10 @@ if __name__ == "__main__":
         print_summary(total_packets, eth_frame_count,
                       avg_eth_data_size, ipv4_count, ipv6_count,
                       tcp_count, udp_count, icmp_count)
+
+        # display the histogram
+        summaryStatistics.make_histogram(packets)
+
+
     sys.stdout = sys.__stdout__
     print("[+] Output written to output.txt")
