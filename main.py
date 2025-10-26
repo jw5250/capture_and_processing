@@ -132,12 +132,29 @@ def collect_input():
                     print("Please enter a number between 0 and 64.")
             except ValueError:
                 print("Invalid input. Please enter an integer.")
-        user_input["capture"] = (num_files, num_bytes, interface)
+
+        # get the number of packets to capture
+        while True:
+            try:
+                num_packets = int(
+                    input(
+                        "Enter the number of packets to capture "
+                        "(1-100): "
+                    )
+                )
+                if 1 <= num_packets <= 100:
+                    break
+                else:
+                    print("Please enter a number between 0 and 100.")
+            except ValueError:
+                print("Invalid input. Please enter an integer.")
+
+        user_input["capture"] = (num_files, num_bytes, num_packets, interface)
 
         return capture, user_input
 
 
-def capture_to_pcap(interface, bytes, pcap_path):
+def capture_to_pcap(interface, bytes, num_packets, pcap_path):
     '''
     Capture 100 packets on the specified interface and save to pcap file.
     Arguments:
@@ -151,7 +168,7 @@ def capture_to_pcap(interface, bytes, pcap_path):
     cmd = [
         "tshark",
         "-i", interface,
-        "-c", str(100),
+        "-c", str(num_packets),
         "-w", str(pcap_path),
         "-q",
         "-n",
@@ -178,8 +195,6 @@ def parse_packets_from_pcap(pcap_path):
 
 
 def write_substrings_to_file(filename, packets, numBytes):
-    if numBytes == 0:
-        return
 
     numNibbles = numBytes * 2
     with open(filename, "w") as f:
@@ -356,7 +371,7 @@ if __name__ == "__main__":
 
             print("[+] Processing of existing file complete.\n")
         else:  # capture new packets
-            num_files, num_bytes, interface = user_input["capture"]
+            num_files, num_bytes, num_packets, interface = user_input["capture"]
             print(
                 f"[+] Starting packet capture of {num_files} files "
                 f"with {num_bytes} bytes per packet...\n"
@@ -369,7 +384,7 @@ if __name__ == "__main__":
                 pcap = base_dir / f"capture{i}.pcapng"
 
                 # capture packets to pcap
-                capture_to_pcap(interface, num_bytes, pcap)
+                capture_to_pcap(interface, num_bytes, num_packets, pcap)
 
                 # clean packets and add to global list
                 print(f"[+] Cleaning packets from {pcap.name}...")
