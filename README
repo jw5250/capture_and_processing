@@ -11,6 +11,11 @@ When writing to files, the program will produce a pcapng file called "capture<x>
 
 The reason we didn't have tshark produce a k12 file is because tshark's interpretation of such does not produce any hex that could be easily converted into a packet's representation as a byte string, unlike Wireshark.
 
+We interpreted the "select number of files to be created" as creating 3 files, each containing 100 packets.
+
+We interpreted the "number of bytes to save from each packet" as the amount of bytes to save from each packet from each file.
+    The bytes of each packet are separated based on which file they came from. The file name scheme is "packetParts<x>.txt", where the x corresponds with the packet's respective capture<x>.pcapng file.
+
 The final summary statistics output is to output.txt.
 
 
