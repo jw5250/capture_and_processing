@@ -1,6 +1,7 @@
 Design Decisions:
 
 Entry point is main.py.
+    May require running "source capture_and_processing_venv/bin/activate" before running the actual program due to use of matplotlib
 
 packetParts.txt contains each packet's first n bytes. Each line contains these bytes. There are no separators between bytes on each line.
 
