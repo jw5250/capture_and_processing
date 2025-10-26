@@ -1,11 +1,16 @@
 Design Decisions:
+
 packetParts.txt contains each packet's first n bytes. Each line contains these bytes. There are no separators between bytes on each line.
+
 The k12 text file is expected to have come from a file from Wireshark, NOT tshark.
-The end extension, however, is expected to be .k12text.
-When writing to files, the program will produce the following:
-A pcapng file called "capture<x>.pcapng", which is an actual .pcapng file. "X" is the nth file produced (indexed like arrays where the first element is at the zeroth position in memory)
-A text file called "capture<x>.txt", which is a custom text file that contains the hex that will be parsed into a byte string representing a packet. "X" is the nth file produced (indexed like arrays where the first element is at the zeroth position in memory).
-The reason we didn't use an actual k12 file is because tshark's interpretation of such does not produce any hex that could be easily converted into a packet's representation as a byte string.
+    The reason for this is that tshark's interpretation of a k12 text file is different from that of Wireshark's.
+
+The end extension, however, is expected to be .txt.
+
+When writing to files, the program will produce a pcapng file called "capture<x>.pcapng", which is an actual .pcapng file. "X" is the nth file produced (indexed like arrays where the first element is at the zeroth position in memory)
+
+The reason we didn't have tshark produce a k12 file is because tshark's interpretation of such does not produce any hex that could be easily converted into a packet's representation as a byte string, unlike Wireshark.
+
 The final summary statistics output is to output.txt.
 
 

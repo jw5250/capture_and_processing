@@ -4,6 +4,8 @@ import sys
 from pathlib import Path
 import os
 
+
+import runCommand
 import cleanNParse
 import summaryStatistics
 
@@ -26,14 +28,6 @@ class Tee:
         for f in self.files:
             f.flush()
 
-
-# regex to grab hex lines from tshark to get offset and the 16 bytes on that
-# line
-# this is from GenAI, I hate regex
-HEX_LINE_RE = re.compile(
-    r"^\s*([0-9A-Fa-f]{4})\s+((?:[0-9A-Fa-f]{2}\s+){1,16})(?:.*)?$")
-
-
 def collect_input():
     """
     Prompt the user to specify:
@@ -53,7 +47,6 @@ def collect_input():
     }
     # ask if user wants to start capture or process existing file
     while True:
-        # TODO: ask for EITHER pcapng or k12text file to process
         choice = input(
             "Do you want to (c)apture new packets "
             "or (p)rocess existing (k12text/pcapng) file? "
@@ -144,28 +137,6 @@ def collect_input():
         return capture, user_input
 
 
-def run(cmd):
-    '''
-        Runs a command using subprocess and handles errors.
-        Arguments:
-        - cmd (List[str]): Command and arguments to run.
-        Returns:
-            subprocess.CompletedProcess: Result of the command execution.
-    '''
-    try:
-        return subprocess.run(cmd, stdout=subprocess.PIPE,
-                              stderr=subprocess.PIPE, check=True)
-    except FileNotFoundError:
-        print("Error: tshark not found on PATH. Install Wireshark/tshark or "
-              "add it to PATH.", file=sys.stderr)
-        sys.exit(1)
-    except subprocess.CalledProcessError as e:
-        print(f"Command failed: {' '.join(cmd)}", file=sys.stderr)
-        if e.stderr:
-            print(e.stderr.decode(errors="ignore"), file=sys.stderr)
-        sys.exit(1)
-
-
 def capture_to_pcap(interface, bytes, pcap_path):
     '''
     Capture 100 packets on the specified interface and save to pcap file.
@@ -188,7 +159,7 @@ def capture_to_pcap(interface, bytes, pcap_path):
     ]
     print(f"""[+] Capturing 100 packets with {bytes} bytes each on
           {interface} -> {pcap_path.name}""")
-    run(cmd)
+    runCommand.run(cmd)
 
 
 def parse_packets_from_pcap(pcap_path):
@@ -201,41 +172,10 @@ def parse_packets_from_pcap(pcap_path):
         List[str]: List of packets, each packet is a byte
         string.
     '''
-    cmd = ["tshark", "-r", str(pcap_path), "-x", "-q", "-n"]
-    proc = run(cmd)
+    cmd = ["tshark", "-r", str(pcap_path), "-x", "--hexdump", "noascii", "-q", "-n"]
+    proc = runCommand.run(cmd)
     text = proc.stdout.decode(errors="ignore").splitlines()
-
-    packets = []
-    current = []
-
-    for line in text:
-        m = HEX_LINE_RE.match(line)
-        if m:
-            offset = m.group(1)
-            bytes_str = m.group(2)
-            # split on whitespace to get 1–16 tokens like 'ff', 'ab', ...
-            tokens = [tok.lower() for tok in bytes_str.split()]
-            # detect new packet when offset resets to 0000 and we already have
-            # data
-            if offset.lower() == "0000" and current:
-                packets.append(current)
-                current = []
-            current.extend(tokens)
-        else:
-            # non-hex line, we can skip
-            pass
-
-    packetStrings = []
-    if current:
-        packets.append(current)
-    for packet in packets:
-        packetString = ""
-        for byte in packet:
-            packetString += byte
-        if packetString != "":
-            packetStrings.append(packetString)
-
-    return packetStrings
+    return cleanNParse.parse_bytestream(text)
 
 
 def write_substrings_to_file(filename, packets, numBytes):
@@ -269,7 +209,7 @@ def analyze_packet_types(packets):
     }
 
     for pkt in packets:
-        if len(pkt) < 14:
+        if len(pkt) < 28:
             continue  # Not enough data for Ethernet header
         # Each byte is two nibbles/characters.
         eth_type = pkt[24:28]
@@ -286,7 +226,7 @@ def analyze_packet_types(packets):
                 type_counts["icmp"] += 1
         elif eth_type == '86dd':  # IPv6
             type_counts["ipv6"] += 1
-            if len(pkt) < 20:
+            if len(pkt) < 40:
                 continue  # Not enough data for IPv6 header
             next_header = pkt[40:42]
             if next_header == '06':
@@ -309,8 +249,8 @@ def parse_info(packets):
     - Total number of TCP, UDP, and ICMP packets.
     Returns:
         tuple: (total packets (int),
-                TODO if this is your part fill out this documentation (int),
-                TODO if this is your part fill out this documentation (float),
+                total number of each type of ethernet frame (tuple(int, int)),
+                average ethernet frame data field length (float),
                 ipv4 packet count (int),
                 ipv6 packet count (int),
                 tcp packet count (int),
@@ -345,7 +285,8 @@ def print_summary(total_packets, eth_frame_count, avg_eth_data_size,
     Prints a summary of the packet analysis.
     Arguments:
     - total_packets (int): Total number of packets captured.
-    TODO fill out the rest of the arguments
+    - eth_frame_count (tuple(int, int)):  total number of each type of ethernet frame
+    - avg_eth_data_size (float): average ethernet frame data field length
     - ipv4_count (int): Number of IPv4 packets.
     - ipv6_count (int): Number of IPv6 packets.
     - tcp_count (int): Number of TCP packets.
@@ -368,7 +309,6 @@ def print_summary(total_packets, eth_frame_count, avg_eth_data_size,
     print("--------------------------------\n")
 
     # print summary statistics
-    # TODO fill out other requirements's statistics
     print("--- Packet Summary Statistics ---")
     print("Most Common Packet Type: ")
     most_common = {
@@ -410,9 +350,7 @@ if __name__ == "__main__":
         if not capture:  # process existing file
             filename = user_input["existing_file"]
             print(f"[+] Processing existing file: {filename}...\n")
-            # TODO: process packets from file
-            # and add to global packets array
-            # and add system updates for progress!!!
+
             if filename.endswith("txt"):
                 packets = cleanNParse.getByteStreamK12(filename)
             else:  # pcapng file
@@ -431,7 +369,7 @@ if __name__ == "__main__":
             for i in range(num_files):
                 # name paths
                 pcap = base_dir / f"capture{i}.pcapng"
-                text_dump = base_dir / f"capture{i}.txt"
+                #text_dump = base_dir / f"capture{i}.txt"
 
                 # capture packets to pcap
                 capture_to_pcap(interface, num_bytes, pcap)

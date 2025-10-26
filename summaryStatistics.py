@@ -1,10 +1,11 @@
 # All network packets are stored as big endian, so the most significant byte is the leftmost and the least
-# significant is the leftmost. as of currently, need to run "source capture_and_processing_venv/bin/activate" on my
+# significant is the leftmost. as of currently, need to run "source capture_and_processing_venv/bin/activate" on my (Justin's)
 # computer because python3 can't use python modules directly installed onto my system (must use virtual environment now)
+import subprocess
+import sys
 from matplotlib import pyplot as plt
 import numpy as np
 import cleanNParse
-
 
 # Notes:
 # Packets don't have a crc at this point, so this should work.
@@ -25,6 +26,8 @@ def get_packet_data_widths(packets):
     # print(type(packets))
     for packet in packets:  # first bound is inclusive, second is exclusive.
         # print(packet[24:28])
+        if len(packet) < 28:
+            continue
         if int(packet[24:28], 16) > 1500:  # if the packet is ethernet II
             # Each character represents one nibble, so divide by 2.
             finalResult.append(len(packet[28:]) // 2)
@@ -46,7 +49,6 @@ def get_ethernet_data_types(packets):
     types["802.3"] = 0
     types["DIX"] = 0
     for packet in packets:  # first bound is inclusive, second is exclusive.
-        # print(packet[24:28])
         if int(packet[24:28], 16) > 1500:  # if the packet is ethernet II
             # Each character represents one nibble, so divide by 2.
             types["DIX"] += 1
@@ -71,11 +73,47 @@ def make_histogram(packets):
     ax.set_xlabel("Ranges of data size")
     plt.show()
 
+def parse_packets_from_pcap(pcap_path):
+    '''
+    Parse packets from a pcap file into a list of packets, each represented as
+      a list of byte strings.
+    Arguments:
+    - pcap_path (Path): Path to the pcap file.
+    Returns:
+        List[str]: List of packets, each packet is a byte
+        string.
+    '''
+    cmd = ["tshark", "-r", str(pcap_path), "-x", "--hexdump", "noascii", "-q", "-n"]
+    proc = run(cmd)
+    text = proc.stdout.decode(errors="ignore").splitlines()
+
+    return cleanNParse.parse_bytestream(text)
+
+def run(cmd):
+    '''
+        Runs a command using subprocess and handles errors.
+        Arguments:
+        - cmd (List[str]): Command and arguments to run.
+        Returns:
+            subprocess.CompletedProcess: Result of the command execution.
+    '''
+    try:
+        return subprocess.run(cmd, stdout=subprocess.PIPE,
+                              stderr=subprocess.PIPE, check=True)
+    except FileNotFoundError:
+        print("Error: tshark not found on PATH. Install Wireshark/tshark or "
+              "add it to PATH.", file=sys.stderr)
+        sys.exit(1)
+    except subprocess.CalledProcessError as e:
+        print(f"Command failed: {' '.join(cmd)}", file=sys.stderr)
+        if e.stderr:
+            print(e.stderr.decode(errors="ignore"), file=sys.stderr)
+        sys.exit(1)
 
 if __name__ == "__main__":
-    packet_strings = cleanNParse.getByteStream("testPackets.txt", "sep")
+    packet_strings = parse_packets_from_pcap("capture0.pcapng")
     packetWidths = get_packet_data_widths(packet_strings)
-    packetWidths2 = get_packet_data_widths(packet_strings)
+    print(packetWidths)
     dictPackets = get_ethernet_data_types(packet_strings)
     print(dictPackets)
     make_histogram(packet_strings)
