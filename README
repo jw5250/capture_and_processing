@@ -19,6 +19,8 @@ We interpreted the "select number of files to be created" as creating 3 files, e
 We interpreted the "number of bytes to save from each packet" as the amount of bytes to save from each packet from each file.
     The bytes of each packet are separated based on which file they came from. The file name scheme is "packetParts<x>.txt", where the x corresponds with the packet's respective capture<x>.pcapng file.
 
+The summary statistics are applied to all packets across all files. Thus, the total amount of packets included in them is <number of packets to be captured> * <number of files requested>.
+
 The final summary statistics output is to output.txt.
 
 
