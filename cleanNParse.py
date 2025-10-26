@@ -1,64 +1,41 @@
-#Each new packet starts with "0000"
-
-# Given a specific text file, parse it into a set of byte streams.
-# Returns an array of packets represented as a set of bytes.
-# Parameters:
-# name:file name
-# lineSeparator:Separator used when making command to tshark.
-def getByteStream(name):
-    bytesOfPackets = []
-    with open(name, "r") as f:  # Read the file as a set of bytes
-        # How can I read a set of bytes at once?
-        # Don't need to do that, I just need to
-        # While reading the file...
-        fileBytes = ""
-        while ((line := f.readline()) != ""):
-            line = line.strip() #Remove everything.
-
-            if line != "":
-
-                bytesAsChars = line.split()
-                #print(bytesAsChars)
-                del bytesAsChars[0]  # Remove the line number from the file.
-                for byte in bytesAsChars:
-                    fileBytes += byte
-            else:
-
-                bytesOfPackets.append(fileBytes)
-                fileBytes = ""
-        #there is no line after the final line in the custom text file, so just flush the rest of the bytes.
-            #Should ignore any trailing newlines.
-        if fileBytes != "":
-            bytesOfPackets.append(fileBytes)
-    return bytesOfPackets
-
+import runCommand
 
 def parse_bytestream(text):
+    '''
+    Parse a list of text lines into a list of byte strings representing packets.
+    Arguments:
+    - text (List[str]): Text output, separated by function .splitlines().
+    Returns:
+        List[str]: List of packets, each packet is a byte
+        string.
+    '''
     bytesOfPackets = []
-
-    # How can I read a set of bytes at once?
-    # Don't need to do that, I just need to
-    # While reading the file...
     fileBytes = ""
     for line in text:
-        line = line.strip() #Remove everything.
+        line = line.strip()
         if line != "":
             bytesAsChars = line.split()
-            #print(bytesAsChars)
             del bytesAsChars[0]  # Remove the line number from the file.
             for byte in bytesAsChars:
                 fileBytes += byte
         else:
             bytesOfPackets.append(fileBytes)
             fileBytes = ""
-    #there is no line after the final line in the custom text file, so just flush the rest of the bytes.
-        #Should ignore any trailing newlines.
+    #Should ignore any trailing newlines.
     if fileBytes != "":
         bytesOfPackets.append(fileBytes)
     return bytesOfPackets
 
-# Assumes the file is a valid k12 file.
-def getByteStreamK12(name):
+def get_byte_stream_k12(name):
+    '''
+    Parse a k12 file from Wireshark into a list of byte strings representing packets.
+    Assumes the file is a valid k12 file.
+    Arguments:
+    - name (str): File name.
+    Returns:
+        List[str]: List of packets, each packet is a byte
+        string.
+    '''
     bytesOfPackets = []
     with open(name, "r") as f:  # Read the file as a set of bytes
         while (line := f.readline()):
@@ -72,21 +49,18 @@ def getByteStreamK12(name):
 
 
 def main():
-    #packets = getByteStream("testPackets.txt")
-
 
     cmd = ["tshark", "-r", "capture0.pcapng", "-x", "--hexdump", "noascii", "-q", "-n"]
-    proc = run(cmd)
+    proc = runCommand.run(cmd)
 
     text = proc.stdout.decode(errors="ignore").splitlines()
     for line in text:
         print(line)
-
     packets = parse_bytestream(text)
 
-    #for p in packets:
-    #    print(p)
-    #    print()
+    for p in packets:
+        print(p)
+        print()
     print(len(packets))
 
 if __name__ == "__main__":

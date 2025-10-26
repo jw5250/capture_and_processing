@@ -352,7 +352,7 @@ if __name__ == "__main__":
             print(f"[+] Processing existing file: {filename}...\n")
 
             if filename.endswith("txt"):
-                packets = cleanNParse.getByteStreamK12(filename)
+                packets = cleanNParse.get_byte_stream_k12(filename)
             else:  # pcapng file
                 packets = parse_packets_from_pcap(Path(filename))
 
