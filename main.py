@@ -151,7 +151,7 @@ def capture_to_pcap(interface, bytes, pcap_path):
     cmd = [
         "tshark",
         "-i", interface,
-        "-c", str(100),#5
+        "-c", str(100),
         "-w", str(pcap_path),
         "-q",
         "-n",
@@ -374,7 +374,7 @@ if __name__ == "__main__":
                 # clean packets and add to global list
                 print(f"[+] Cleaning packets from {pcap.name}...")
                 packets_from_file = parse_packets_from_pcap(pcap)
-
+                write_substrings_to_file("packetParts" + str(i) + ".txt", packets_from_file, num_bytes)
                 # check if any packets were parsed
                 if not packets_from_file:
                     print(f"[!] No packets parsed from {pcap.name}")
@@ -383,7 +383,7 @@ if __name__ == "__main__":
                     packets.extend(packets_from_file)
                 print()
 
-            write_substrings_to_file("packetParts.txt", packets, num_bytes)
+
             print("[+] Packet capture and cleaning complete.\n")
 
         # parse info from all packets
