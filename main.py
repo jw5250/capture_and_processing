@@ -151,8 +151,7 @@ def capture_to_pcap(interface, bytes, pcap_path):
     cmd = [
         "tshark",
         "-i", interface,
-        "-c", str(100),
-        "-s", str(bytes),
+        "-c", str(100),#5
         "-w", str(pcap_path),
         "-q",
         "-n",
@@ -179,7 +178,6 @@ def parse_packets_from_pcap(pcap_path):
 
 
 def write_substrings_to_file(filename, packets, numBytes):
-    # In this case, nothing is written.
     if numBytes == 0:
         return
 
@@ -369,7 +367,6 @@ if __name__ == "__main__":
             for i in range(num_files):
                 # name paths
                 pcap = base_dir / f"capture{i}.pcapng"
-                #text_dump = base_dir / f"capture{i}.txt"
 
                 # capture packets to pcap
                 capture_to_pcap(interface, num_bytes, pcap)
@@ -386,9 +383,7 @@ if __name__ == "__main__":
                     packets.extend(packets_from_file)
                 print()
 
-            # write each packet to a file.
             write_substrings_to_file("packetParts.txt", packets, num_bytes)
-
             print("[+] Packet capture and cleaning complete.\n")
 
         # parse info from all packets
@@ -407,6 +402,5 @@ if __name__ == "__main__":
 
         # display the histogram
         summaryStatistics.make_histogram(packets)
-
     sys.stdout = sys.__stdout__
     print("[+] Output written to output.txt")

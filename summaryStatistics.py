@@ -26,8 +26,8 @@ def get_packet_data_widths(packets):
     # print(type(packets))
     for packet in packets:  # first bound is inclusive, second is exclusive.
         # print(packet[24:28])
-        if len(packet) < 28:
-            continue
+        #if len(packet) < 28:
+        #    continue
         if int(packet[24:28], 16) > 1500:  # if the packet is ethernet II
             # Each character represents one nibble, so divide by 2.
             finalResult.append(len(packet[28:]) // 2)
@@ -48,12 +48,14 @@ def get_ethernet_data_types(packets):
     types = dict()
     types["802.3"] = 0
     types["DIX"] = 0
+
     for packet in packets:  # first bound is inclusive, second is exclusive.
         if int(packet[24:28], 16) > 1500:  # if the packet is ethernet II
             # Each character represents one nibble, so divide by 2.
             types["DIX"] += 1
         else:  # Assume its IEEE 802.3
             types["802.3"] += 1
+
     return types
 
 
