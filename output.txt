@@ -40,30 +40,30 @@ Enter the number of the interface to capture on: Enter the number of files to cr
 [+] Packet analysis complete.
 
 --- Packet Analysis Summary ---
-Total packets captured: 200
-Total number of DIX ethernet frames: 200
-Total number of 802.3 ethernet frames: 0
-Average size of an ethernet frame: 602.515
-IPv4 packets: 114
-IPv6 packets: 64
-TCP packets: 61
-UDP packets: 117
+Total packets captured: 10
+Total number of DIX ethernet frames: 9
+Total number of 802.3 ethernet frames: 1
+Average size of an ethernet frame: 98.8
+IPv4 packets: 9
+IPv6 packets: 0
+TCP packets: 0
+UDP packets: 9
 ICMP packets: 0
 --------------------------------
 
 --- Packet Summary Statistics ---
 Most Common Packet Type: 
-  UDP (117 packets)
+  IPv4 (9 packets)
 Least Common Packet Type: 
-  ICMP (0 packets)
+  IPv6 (0 packets)
 Packet Type Distribution: 
-  IPv4: 114 packets (57.00%)
-  IPv6: 64 packets (32.00%)
-  TCP: 61 packets (30.50%)
-  UDP: 117 packets (58.50%)
+  IPv4: 9 packets (90.00%)
+  IPv6: 0 packets (0.00%)
+  TCP: 0 packets (0.00%)
+  UDP: 9 packets (90.00%)
   ICMP: 0 packets (0.00%)
 Ethernet Frame Distribution: 
-  802.3: 0 frames (0.00%)
-  DIX: 200 frames (100.00%)
+  802.3: 1 frames (10.00%)
+  DIX: 9 frames (90.00%)
 --------------------------------
 

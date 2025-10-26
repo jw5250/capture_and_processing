@@ -1,5 +1,7 @@
 Design Decisions:
 
+Entry point is main.py.
+
 packetParts.txt contains each packet's first n bytes. Each line contains these bytes. There are no separators between bytes on each line.
 
 The k12 text file is expected to have come from a file from Wireshark, NOT tshark.
