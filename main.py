@@ -173,7 +173,7 @@ def capture_to_pcap(interface, bytes, num_packets, pcap_path):
         "-q",
         "-n",
     ]
-    print(f"""[+] Capturing 100 packets with {bytes} bytes each on
+    print(f"""[+] Capturing {num_packets} packets with {bytes} bytes each on
           {interface} -> {pcap_path.name}""")
     runCommand.run(cmd)
 
