@@ -9,7 +9,7 @@ import cleanNParse
 
 # Notes:
 # Packets don't have a crc at this point, so this should work.
-# I should first test this
+
 
 # Extracts the data field width from all ethernet packets.
 # Returns a numpy array.
@@ -58,6 +58,32 @@ def get_ethernet_data_types(packets):
 
     return types
 
+
+def generate_timestamp_graph_by_microseconds(timestamps):
+    """
+    Visualize the length of time it took for each packet to arrive, relative to the previous one.
+    Arguments:
+    - timestamps (List[tuple(int, int, int, int)]): List of times when a packet arrived.
+                                                    First is hours, second is minutes,
+                                                    third is seconds, fourth is microseconds.
+    """
+    #Initialize the timestamp array.
+    i = 0
+    times = []
+    while ( i < (len(timestamps)-1) ):
+        start = cleanNParse.time_to_microseconds(timestamps[i])
+        end = cleanNParse.time_to_microseconds(timestamps[i+1])
+        times.append(cleanNParse.time_between_packet_arrivals(start, end))
+        i += 1
+    #Given matplotlib, initialize the actual graph.
+    fig, ax = plt.subplots()
+    style = {'facecolor': 'none', 'edgecolor': 'C0', 'linewidth': 3}
+    x = np.arange(len(times))
+    ax.plot(x, np.array(times))
+    ax.set_xticks(np.arange(len(times)))
+    ax.set_ylabel("Time (microseconds)")
+    ax.set_xlabel("The nth gap between two packets' instance of arrival")
+    plt.show()
 
 def make_histogram(packets):
     """
@@ -113,9 +139,12 @@ def run(cmd):
         sys.exit(1)
 
 if __name__ == "__main__":
-    packet_strings = parse_packets_from_pcap("capture0.pcapng")
+    """packet_strings = parse_packets_from_pcap("capture0.pcapng")
     packetWidths = get_packet_data_widths(packet_strings)
     print(packetWidths)
     dictPackets = get_ethernet_data_types(packet_strings)
     print(dictPackets)
-    make_histogram(packet_strings)
+    make_histogram(packet_strings)"""
+
+    packet_timestamps = cleanNParse.parse_time_stamps_pcapng("capture1.pcapng")
+    generate_timestamp_graph_by_microseconds(packet_timestamps)
