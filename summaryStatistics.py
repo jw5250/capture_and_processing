@@ -87,9 +87,8 @@ def generate_timestamp_graph_by_microseconds(timegaps):
     print(times)
     #Given matplotlib, initialize the actual graph.
     fig, ax = plt.subplots()
-    style = {'facecolor': 'none', 'edgecolor': 'C0', 'linewidth': 3}
     x = np.arange(len(times))
-    ax.plot(x, np.array(times))
+    ax.bar(x, np.array(times))
     ax.set_xticks(np.arange(len(times)))
     ax.set_ylabel("Time (microseconds)")
     ax.set_xlabel("The nth gap between two packets' instance of arrival")
