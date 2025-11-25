@@ -58,16 +58,15 @@ def get_ethernet_data_types(packets):
 
     return types
 
-
-def generate_timestamp_graph_by_microseconds(timestamps):
+def generate_time_gap_between_packets(timestamps):
     """
-    Visualize the length of time it took for each packet to arrive, relative to the previous one.
     Arguments:
     - timestamps (List[tuple(int, int, int, int)]): List of times when a packet arrived.
                                                     First is hours, second is minutes,
                                                     third is seconds, fourth is microseconds.
+    Returns:
+        List[int]: List of the time the network capturing software waited between packet n and n+1.
     """
-    #Initialize the timestamp array.
     i = 0
     times = []
     while ( i < (len(timestamps)-1) ):
@@ -75,6 +74,17 @@ def generate_timestamp_graph_by_microseconds(timestamps):
         end = cleanNParse.time_to_microseconds(timestamps[i+1])
         times.append(cleanNParse.time_between_packet_arrivals(start, end))
         i += 1
+    return times
+
+def generate_timestamp_graph_by_microseconds(timegaps):
+    """
+    Visualize the length of time it took for each packet to arrive, relative to the previous one.
+    Arguments:
+    - timegaps (List[int]): List of the time the network capturing software waited between packet n and n+1.
+    """
+    #Initialize the timestamp array.
+    times = generate_time_gap_between_packets(timegaps)
+    print(times)
     #Given matplotlib, initialize the actual graph.
     fig, ax = plt.subplots()
     style = {'facecolor': 'none', 'edgecolor': 'C0', 'linewidth': 3}
