@@ -144,7 +144,18 @@ def parse_time_stamps_k12(name):
                 # Parse packet.
                 subStrings = line.split()#Grabs any line that is "14:07:25,124,767   ETHER" and split it.
                 packetTimestamps.append(string_to_time(subStrings[0]))
-    return packetTimestamps
+
+
+    packet_timestamps_in_microseconds = []
+    for t_stamp in packetTimestamps:
+        packet_timestamps_in_microseconds.append(time_to_microseconds(t_stamp))
+    i = 1
+    packet_timegaps = []
+    while (i < len(packetTimestamps)):
+        packet_timegaps.append(time_between_packet_arrivals(packet_timestamps_in_microseconds[i-1], packet_timestamps_in_microseconds[i]))
+        i += 1
+
+    return packet_timegaps
 
 
 #Function for getting datetime and shit from pcapng
@@ -169,7 +180,17 @@ def parse_time_stamps_pcapng(filename):
         args = line.strip().split()
         #print(args)
         packetTimestamps.append(string_to_time(args[2]))
-    return packetTimestamps
+
+    packet_timestamps_in_microseconds = []
+    for t_stamp in packetTimestamps:
+        packet_timestamps_in_microseconds.append(time_to_microseconds(t_stamp))
+    i = 1
+    packet_timegaps = []
+    while (i < len(packetTimestamps)):
+        packet_timegaps.append(time_between_packet_arrivals(packet_timestamps_in_microseconds[i-1], packet_timestamps_in_microseconds[i]))
+        i += 1
+
+    return packet_timegaps
 
 
 

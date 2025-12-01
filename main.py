@@ -228,7 +228,7 @@ def analyze_packet_types(packets):
         eth_type = pkt[24:28]
         if eth_type == '0800':  # IPv4
             type_counts["ipv4"] += 1
-            if len(pkt) < 23:
+            if len(pkt) < 46:
                 continue  # Not enough data for IP header
             protocol = pkt[46:48]  # Get the 23rd byte.
             if protocol == '06':
@@ -351,6 +351,100 @@ def print_summary(total_packets, eth_frame_count, avg_eth_data_size,
     print("--------------------------------\n")
 
 
+def group_packet_times(packet_times, packets):
+    """
+    Groups the amount of time a packet took to arrive (relative to the previous one) based on packet type.
+    Assumes len(packet_times) == len(packets)
+    Arguments:
+    - packet_times(List[int]): List containing the amount of time a packet took to arrive, relative to the previous packet.
+    Returns:
+        Dict[str, List[int]]: Set of lists of packet times, grouped by packet type.
+    """
+    i = 1#Exclude the first packet, as it's the literal baseline.
+
+    packet_groups = dict()
+    packet_groups["tcp"] = []
+    packet_groups["udp"] = []
+    packet_groups["icmp"] = []
+    packet_groups["other"] = []
+
+    while(i < len(packets)):
+        # Each byte is two nibbles/characters.
+        if len(packets[i]) < 24:
+            packet_groups["other"].append(packet_times[i-1])
+            i += 1
+            continue
+        eth_type = packets[i][24:28]
+        if eth_type == '0800':  # IPv4
+            if len(packets[i]) < 46:
+                packet_groups["other"].append(packet_times[i-1])
+                i += 1
+                continue  # Not enough data for IP header
+            protocol = packets[i][46:48]  # Get the 23rd byte.
+            if protocol == '06':
+                packet_groups["tcp"].append(packet_times[i-1])
+            elif protocol == '11':
+                packet_groups["udp"].append(packet_times[i-1])
+            elif protocol == '01':
+                packet_groups["icmp"].append(packet_times[i-1])
+            else:
+                packet_groups["other"].append(packet_times[i-1])
+        elif eth_type == '86dd':  # IPv6
+            if len(packets[i]) < 40:
+                packet_groups["other"].append(packet_times[i-1])
+                i += 1
+                continue  # Not enough data for IPv6 header
+            next_header = packets[i][40:42]
+            if next_header == '06':
+                packet_groups["tcp"].append(packet_times[i-1])
+            elif next_header == '11':
+                packet_groups["udp"].append(packet_times[i-1])
+            elif next_header == '3a':
+                packet_groups["icmp"].append(packet_times[i-1])
+            else:
+                packet_groups["other"].append(packet_times[i-1])
+        else:
+            packet_groups["other"].append(packet_times[i-1])
+
+        i += 1
+    return packet_groups
+
+
+#Gets the average packet times for each packet.
+    #Should do the following:
+        #Print the average packet time for a given packet.
+            #The average packet time given all types of packet.
+        #Print the standard deviation for a given packet.
+def print_summary_packet_times(packet_groups):
+    """
+    Prints summary statistics of the packet times.
+    Arguments:
+    - packet_groups(Dict[str, List[int]]):Set of lists containing the amount of time a packet took to arrive,
+                                          relative to the previous packet. Grouped by packet type.
+    Returns:
+        None
+    """
+    packet_times = []
+    for packet_type, time_gaps in packet_groups.items():
+        packet_times.extend(time_gaps)
+
+
+    print("\n--- Packet Time Analysis Summary ---")
+    avg_pkt_time = sum(packet_times)/(len(packet_times))
+    print(f"Average packet time (in microseconds):{avg_pkt_time}")
+    stdev_pkt_time = summaryStatistics.standard_deviation(packet_times)
+    print(f"Standard deviation of packet times(in microseconds):{stdev_pkt_time}")
+    print("--------------------------------\n")
+
+    for packet_type, times in packet_groups.items():
+        if len(times) > 0:
+            avg_pkt_time = sum(times)/(len(times))
+            print(f"Average packet time for type: \"{packet_type}\" (in microseconds):{avg_pkt_time}")
+            stdev_pkt_time = summaryStatistics.standard_deviation(times)
+            print(f"Standard deviation of packet time for type \"{packet_type}\" (in microseconds):{stdev_pkt_time}")
+
+
+
 if __name__ == "__main__":
     with open("output.txt", "w", ) as f:
         sys.stdout = Tee(sys.stdout, f)
@@ -360,15 +454,26 @@ if __name__ == "__main__":
 
         # array with all captured packets across files
         packets = []
+
+        packet_time_groups = []
+
+        packet_timelines = []
+        files_choosen = []
         if not capture:  # process existing file
             filename = user_input["existing_file"]
+            filechoosen.append(filename)
             print(f"[+] Processing existing file: {filename}...\n")
 
             if filename.endswith("txt"):
                 packets = cleanNParse.get_byte_stream_k12(filename)
+                packet_times = cleanNParse.parse_time_stamps_k12(filename)
+                packet_timelines.append(packet_times)
+                packet_time_groups.append(group_packet_times(packet_times, packets))
             else:  # pcapng file
                 packets = parse_packets_from_pcap(Path(filename))
-
+                packet_times = cleanNParse.parse_time_stamps_pcapng(Path(filename))
+                packet_timelines.append(packet_times)
+                packet_time_groups.append(group_packet_times(packet_times, packets))
             print("[+] Processing of existing file complete.\n")
         else:  # capture new packets
             num_files, num_bytes, num_packets, interface = user_input["capture"]
@@ -386,6 +491,9 @@ if __name__ == "__main__":
                 # capture packets to pcap
                 capture_to_pcap(interface, num_bytes, num_packets, pcap)
 
+                # record the file associated with the given ordered lists of packets
+                files_choosen.append(pcap.name)
+
                 # clean packets and add to global list
                 print(f"[+] Cleaning packets from {pcap.name}...")
                 packets_from_file = parse_packets_from_pcap(pcap)
@@ -396,6 +504,9 @@ if __name__ == "__main__":
                     continue
                 else:
                     packets.extend(packets_from_file)
+                    packet_timestamps_from_file = cleanNParse.parse_time_stamps_pcapng(pcap)
+                    packet_timelines.append(packet_timestamps_from_file)
+                    packet_time_groups.append(group_packet_times(packet_timestamps_from_file, packets_from_file))
                 print()
 
 
@@ -415,7 +526,24 @@ if __name__ == "__main__":
                       avg_eth_data_size, ipv4_count, ipv6_count,
                       tcp_count, udp_count, icmp_count)
 
-        # display the histogram
+        if len(packet_time_groups) > 0:
+            #Combine the packet arrival times of every file into a single dictionary.
+            i = 0
+            for packet_timeline in packet_timelines:
+                summaryStatistics.generate_timestamp_graph_by_microseconds(packet_timeline, files_choosen[i])
+                i += 1
+            total_packet_time_group = packet_time_groups[0]
+            for key in packet_time_groups[0].keys():
+                i = 1
+                while i < len(packet_time_groups):
+                    for time_gap in packet_time_groups[i][key]:
+                        total_packet_time_group[key].append(time_gap)
+                    i += 1
+            print_summary_packet_times(total_packet_time_group)
+
+
+
+        # display the histogram for payload distribution
         summaryStatistics.make_histogram(packets)
     sys.stdout = sys.__stdout__
     print("[+] Output written to output.txt")
