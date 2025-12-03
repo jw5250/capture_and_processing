@@ -437,13 +437,17 @@ def print_summary_packet_times(packet_groups):
     print("--------------------------------\n")
 
     for packet_type, times in packet_groups.items():
+        print(f"For packet type: \"{packet_type}\"\n")
         if len(times) > 0:
             avg_pkt_time = sum(times)/(len(times))
-            print(f"Average packet time for type: \"{packet_type}\" (in microseconds):{avg_pkt_time}")
+            print(f"Average packet time (in microseconds):{avg_pkt_time}")
             stdev_pkt_time = summaryStatistics.standard_deviation(times)
-            print(f"Standard deviation of packet time for type \"{packet_type}\" (in microseconds):{stdev_pkt_time}")
-
-
+            print(f"Standard deviation of packet time (in microseconds):{stdev_pkt_time}")
+            variance_pkt_time = summaryStatistics.variance(times)
+            print(f"Variance of packet time (in microseconds):{variance_pkt_time}")
+        else:
+            print("No packets of this type found")
+        print("--------------------------------")
 
 if __name__ == "__main__":
     with open("output.txt", "w", ) as f:

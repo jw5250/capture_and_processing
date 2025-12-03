@@ -87,12 +87,29 @@ def generate_timestamp_graph_by_microseconds(timegaps, filename):
     fig, ax = plt.subplots()
     x = np.arange(len(timegaps))
     ax.bar(x, np.array(timegaps))
-    ax.set_xticks(np.arange(len(timegaps)))
+    ax.set_xticks(np.arange(len(timegaps)), minor=True)
     ax.set_ylabel("Time (microseconds)")
     ax.set_xlabel("The gap between the n-1 and n packets' instance of arrival")
     plt.title(f"Time it took for some packet to arrive, given the previous packet for file: {filename}")
     plt.show()
 
+def variance(arr):
+    """
+    Get the variance of a list of integers. Uses L2 distance for calculating distance between mean and a point.
+    Arguments:
+    - arr (List[int]) : List of integers.
+    Returns:
+        Float:The variance
+    """
+    if len(arr) <= 1:
+        return 0 #No deviation from something that doesn't exist or is just a single element... right?
+
+    mean = sum(arr)/len(arr)
+    var = 0.0
+    for val in arr:
+        var += (val-mean)**2
+
+    return var/(len(arr)-1)
 
 def standard_deviation(arr):
     """
@@ -102,15 +119,7 @@ def standard_deviation(arr):
     Returns:
         Float:The standard deviation
     """
-    if len(arr) <= 1:
-        return 0 #No deviation from something that doesn't exist or is just a single element... right?
-
-    mean = sum(arr)/len(arr)
-    stdev = 0.0
-    for val in arr:
-        stdev += (val-mean)**2
-
-    return math.sqrt(stdev/(len(arr)-1))
+    return math.sqrt(variance(arr))
 
 
 def make_histogram(packets):
