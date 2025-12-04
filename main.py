@@ -9,6 +9,7 @@ import runCommand
 import cleanNParse
 import summaryStatistics
 from typing import Any
+import time
 
 """
 authors: Anishya Thinesh (amt2622@rit.edu), Justin Wu (jw5250@rit.edu),
@@ -488,6 +489,9 @@ if __name__ == "__main__":
 
         packet_timelines = []
         files_choosen = []
+
+        # initialize total capture time
+        capture_time = 0.0
         if not capture:  # process existing file
             filename = user_input["existing_file"]
             files_choosen.append(filename)
@@ -514,14 +518,26 @@ if __name__ == "__main__":
                 f"with {num_bytes} bytes per packet...\n"
             )
             base_dir = Path(".").resolve()
+            
+            # init start/end time variables
+            start_time, end_time = None, None
 
             # capture and process each file
             for i in range(num_files):
                 # name paths
                 pcap = base_dir / f"capture{i}.pcapng"
+                
+                # start time tracking
+                start_time = time.time()
 
                 # capture packets to pcap
                 capture_to_pcap(interface, num_bytes, num_packets, pcap)
+
+                # end time tracking
+                end_time = time.time()
+
+                # calculate capture duration
+                capture_time += end_time - start_time
 
                 # record the file associated with the given ordered lists of packets
                 files_choosen.append(pcap.name)
@@ -577,8 +593,28 @@ if __name__ == "__main__":
             print_summary_packet_times(total_packet_time_group)
 
         # Metadata about the capture
-        # Calculate Metadata about the capture
 
+        # Calculations for metadata
+        num_pkts = total_packets
+        # Calculate total capture duration
+        if capture:
+            capture_duration = capture_time
+        else:
+            # For existing files, we can estimate duration from timestamps
+            all_timestamps = []
+            for timeline in packet_timelines:
+                all_timestamps.extend(timeline)
+            if len(all_timestamps) >= 2:
+                start_time = cleanNParse.time_to_microseconds(all_timestamps[0])
+                end_time = cleanNParse.time_to_microseconds(
+                    all_timestamps[-1])
+                capture_duration = (end_time - start_time) / 1_000_000  # convert to seconds
+            else:
+                capture_duration = 0.0
+        # Average packet size in bytes
+        avg_pkt_size = (sum(len(pkt) for pkt in packets) / num_pkts) / 2 if num_pkts > 0 else 0.0
+        # Total payload bytes captured
+        
         # print_metadata()
 
         # display the histogram for payload distribution
