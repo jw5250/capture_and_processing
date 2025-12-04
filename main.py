@@ -8,6 +8,7 @@ import os
 import runCommand
 import cleanNParse
 import summaryStatistics
+from typing import Any
 
 """
 authors: Anishya Thinesh (amt2622@rit.edu), Justin Wu (jw5250@rit.edu),
@@ -41,9 +42,9 @@ def collect_input():
         tuple: (capture (bool), user_input (dict))
     """
     # initialize user input dictionary
-    user_input = {
-        "capture": (),
-        "existing_file": (),
+    user_input: dict[str, Any] = {
+        "capture": None,
+        "existing_file": None,
     }
     # ask if user wants to start capture or process existing file
     while True:
@@ -331,11 +332,11 @@ def print_summary(total_packets, eth_frame_count, avg_eth_data_size,
         "UDP": udp_count,
         "ICMP": icmp_count,
     }
-    most_common_type = max(most_common, key=most_common.get)
+    most_common_type = max(most_common, key=lambda x: most_common[x])
     print(f"  {most_common_type} ({most_common[most_common_type]} packets)")
 
     print("Least Common Packet Type: ")
-    least_common_type = min(most_common, key=most_common.get)
+    least_common_type = min(most_common, key=lambda x: most_common[x])
     print(f"  {least_common_type} ({most_common[least_common_type]} packets)")
 
     print("Packet Type Distribution: ")
@@ -465,7 +466,7 @@ if __name__ == "__main__":
         files_choosen = []
         if not capture:  # process existing file
             filename = user_input["existing_file"]
-            filechoosen.append(filename)
+            files_choosen.append(filename)
             print(f"[+] Processing existing file: {filename}...\n")
 
             if filename.endswith("txt"):
