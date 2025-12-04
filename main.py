@@ -29,6 +29,7 @@ class Tee:
         for f in self.files:
             f.flush()
 
+
 def collect_input():
     """
     Prompt the user to specify:
@@ -189,7 +190,8 @@ def parse_packets_from_pcap(pcap_path):
         List[str]: List of packets, each packet is a byte
         string.
     '''
-    cmd = ["tshark", "-r", str(pcap_path), "-x", "--hexdump", "noascii", "-q", "-n"]
+    cmd = ["tshark", "-r", str(pcap_path), "-x",
+           "--hexdump", "noascii", "-q", "-n"]
     proc = runCommand.run(cmd)
     text = proc.stdout.decode(errors="ignore").splitlines()
     return cleanNParse.parse_bytestream(text)
@@ -361,7 +363,7 @@ def group_packet_times(packet_times, packets):
     Returns:
         Dict[str, List[int]]: Set of lists of packet times, grouped by packet type.
     """
-    i = 1#Exclude the first packet, as it's the literal baseline.
+    i = 1  # Exclude the first packet, as it's the literal baseline.
 
     packet_groups = dict()
     packet_groups["tcp"] = []
@@ -369,7 +371,7 @@ def group_packet_times(packet_times, packets):
     packet_groups["icmp"] = []
     packet_groups["other"] = []
 
-    while(i < len(packets)):
+    while (i < len(packets)):
         # Each byte is two nibbles/characters.
         if len(packets[i]) < 24:
             packet_groups["other"].append(packet_times[i-1])
@@ -411,11 +413,11 @@ def group_packet_times(packet_times, packets):
     return packet_groups
 
 
-#Gets the average packet times for each packet.
-    #Should do the following:
-        #Print the average packet time for a given packet.
-            #The average packet time given all types of packet.
-        #Print the standard deviation for a given packet.
+# Gets the average packet times for each packet.
+    # Should do the following:
+    # Print the average packet time for a given packet.
+    # The average packet time given all types of packet.
+    # Print the standard deviation for a given packet.
 def print_summary_packet_times(packet_groups):
     """
     Prints summary statistics of the packet times.
@@ -429,12 +431,12 @@ def print_summary_packet_times(packet_groups):
     for packet_type, time_gaps in packet_groups.items():
         packet_times.extend(time_gaps)
 
-
     print("\n--- Packet Time Analysis Summary ---")
     avg_pkt_time = sum(packet_times)/(len(packet_times))
     print(f"Average packet time (in microseconds):{avg_pkt_time}")
     stdev_pkt_time = summaryStatistics.standard_deviation(packet_times)
-    print(f"Standard deviation of packet times(in microseconds):{stdev_pkt_time}")
+    print(
+        f"Standard deviation of packet times(in microseconds):{stdev_pkt_time}")
     print("--------------------------------\n")
 
     for packet_type, times in packet_groups.items():
@@ -443,9 +445,11 @@ def print_summary_packet_times(packet_groups):
             avg_pkt_time = sum(times)/(len(times))
             print(f"Average packet time (in microseconds):{avg_pkt_time}")
             stdev_pkt_time = summaryStatistics.standard_deviation(times)
-            print(f"Standard deviation of packet time (in microseconds):{stdev_pkt_time}")
+            print(
+                f"Standard deviation of packet time (in microseconds):{stdev_pkt_time}")
             variance_pkt_time = summaryStatistics.variance(times)
-            print(f"Variance of packet time (in microseconds):{variance_pkt_time}")
+            print(
+                f"Variance of packet time (in microseconds):{variance_pkt_time}")
         else:
             print("No packets of this type found")
         print("--------------------------------")
@@ -468,6 +472,7 @@ def print_metadata(num_packets: int, capture_duration: float, avg_pkt_size: floa
     print(f"Average packet size (bytes): {avg_pkt_size:.2f}")
     print(f"Total payload bytes captured: {payload_bytes}")
     print("--------------------------------\n")
+
 
 if __name__ == "__main__":
     with open("output.txt", "w", ) as f:
@@ -492,12 +497,15 @@ if __name__ == "__main__":
                 packets = cleanNParse.get_byte_stream_k12(filename)
                 packet_times = cleanNParse.parse_time_stamps_k12(filename)
                 packet_timelines.append(packet_times)
-                packet_time_groups.append(group_packet_times(packet_times, packets))
+                packet_time_groups.append(
+                    group_packet_times(packet_times, packets))
             else:  # pcapng file
                 packets = parse_packets_from_pcap(Path(filename))
-                packet_times = cleanNParse.parse_time_stamps_pcapng(Path(filename))
+                packet_times = cleanNParse.parse_time_stamps_pcapng(
+                    Path(filename))
                 packet_timelines.append(packet_times)
-                packet_time_groups.append(group_packet_times(packet_times, packets))
+                packet_time_groups.append(
+                    group_packet_times(packet_times, packets))
             print("[+] Processing of existing file complete.\n")
         else:  # capture new packets
             num_files, num_bytes, num_packets, interface = user_input["capture"]
@@ -521,18 +529,20 @@ if __name__ == "__main__":
                 # clean packets and add to global list
                 print(f"[+] Cleaning packets from {pcap.name}...")
                 packets_from_file = parse_packets_from_pcap(pcap)
-                write_substrings_to_file("packetParts" + str(i) + ".txt", packets_from_file, num_bytes)
+                write_substrings_to_file(
+                    "packetParts" + str(i) + ".txt", packets_from_file, num_bytes)
                 # check if any packets were parsed
                 if not packets_from_file:
                     print(f"[!] No packets parsed from {pcap.name}")
                     continue
                 else:
                     packets.extend(packets_from_file)
-                    packet_timestamps_from_file = cleanNParse.parse_time_stamps_pcapng(pcap)
+                    packet_timestamps_from_file = cleanNParse.parse_time_stamps_pcapng(
+                        pcap)
                     packet_timelines.append(packet_timestamps_from_file)
-                    packet_time_groups.append(group_packet_times(packet_timestamps_from_file, packets_from_file))
+                    packet_time_groups.append(group_packet_times(
+                        packet_timestamps_from_file, packets_from_file))
                 print()
-
 
             print("[+] Packet capture and cleaning complete.\n")
 
@@ -551,10 +561,11 @@ if __name__ == "__main__":
                       tcp_count, udp_count, icmp_count)
 
         if len(packet_time_groups) > 0:
-            #Combine the packet arrival times of every file into a single dictionary.
+            # Combine the packet arrival times of every file into a single dictionary.
             i = 0
             for packet_timeline in packet_timelines:
-                summaryStatistics.generate_timestamp_graph_by_microseconds(packet_timeline, files_choosen[i])
+                summaryStatistics.generate_timestamp_graph_by_microseconds(
+                    packet_timeline, files_choosen[i])
                 i += 1
             total_packet_time_group = packet_time_groups[0]
             for key in packet_time_groups[0].keys():
