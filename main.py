@@ -475,6 +475,34 @@ def print_metadata(num_packets: int, capture_duration: float, avg_pkt_size: floa
     print("--------------------------------\n")
 
 
+def get_payload_bytes(packets: list[str]) -> int:
+    total_ip_payload = 0
+    num_ipv4_packets = 0
+
+    for pkt in packets:
+        if len(pkt) < 28:
+            continue  # not enough for Ethernet + minimal IP header
+
+        eth_type = pkt[24:28]
+        if eth_type != '0800':  # skip non-IPv4
+            continue
+
+        num_ipv4_packets += 1
+
+        # IP header starts at byte 14 (28 hex chars)
+        ip_header_first_byte = int(pkt[28:30], 16)
+        ihl = ip_header_first_byte & 0x0F  # lower 4 bits
+        ip_header_length = ihl * 4  # in bytes
+
+        # Total length field in IP header (bytes 2-3 of IP header)
+        total_length = int(pkt[28+4:28+8], 16)  # hex string of 2 bytes
+        ip_payload_bytes = total_length - ip_header_length
+
+        if ip_payload_bytes > 0:
+            total_ip_payload += ip_payload_bytes
+    return total_ip_payload
+
+
 if __name__ == "__main__":
     with open("output.txt", "w", ) as f:
         sys.stdout = Tee(sys.stdout, f)
@@ -518,7 +546,7 @@ if __name__ == "__main__":
                 f"with {num_bytes} bytes per packet...\n"
             )
             base_dir = Path(".").resolve()
-            
+
             # init start/end time variables
             start_time, end_time = None, None
 
@@ -526,7 +554,7 @@ if __name__ == "__main__":
             for i in range(num_files):
                 # name paths
                 pcap = base_dir / f"capture{i}.pcapng"
-                
+
                 # start time tracking
                 start_time = time.time()
 
@@ -605,17 +633,22 @@ if __name__ == "__main__":
             for timeline in packet_timelines:
                 all_timestamps.extend(timeline)
             if len(all_timestamps) >= 2:
-                start_time = cleanNParse.time_to_microseconds(all_timestamps[0])
+                start_time = cleanNParse.time_to_microseconds(
+                    all_timestamps[0])
                 end_time = cleanNParse.time_to_microseconds(
                     all_timestamps[-1])
-                capture_duration = (end_time - start_time) / 1_000_000  # convert to seconds
+                capture_duration = (end_time - start_time) / \
+                    1_000_000  # convert to seconds
             else:
                 capture_duration = 0.0
         # Average packet size in bytes
-        avg_pkt_size = (sum(len(pkt) for pkt in packets) / num_pkts) / 2 if num_pkts > 0 else 0.0
+        avg_pkt_size = (sum(len(pkt) for pkt in packets) /
+                        num_pkts) / 2 if num_pkts > 0 else 0.0
         # Total payload bytes captured
-        
-        # print_metadata()
+        payload_bytes = get_payload_bytes(packets)
+
+        # Print metadata
+        print_metadata(num_pkts, capture_duration, avg_pkt_size, payload_bytes)
 
         # display the histogram for payload distribution
         summaryStatistics.make_histogram(packets)
