@@ -450,6 +450,25 @@ def print_summary_packet_times(packet_groups):
             print("No packets of this type found")
         print("--------------------------------")
 
+
+def print_metadata(num_packets: int, capture_duration: float, avg_pkt_size: float, payload_bytes: int):
+    """
+    Prints metadata about the packet capture.
+    Arguments:
+    - num_packets (int): Total number of packets captured.
+    - capture_duration (float): Duration of the capture in seconds.
+    - avg_pkt_size (float): Average size of packets in bytes.
+    - payload_bytes (int): Total number of payload bytes captured.
+    Returns:
+        None
+    """
+    print("\n--- Packet Capture Metadata ---")
+    print(f"Total packets captured: {num_packets}")
+    print(f"Capture duration (seconds): {capture_duration:.2f}")
+    print(f"Average packet size (bytes): {avg_pkt_size:.2f}")
+    print(f"Total payload bytes captured: {payload_bytes}")
+    print("--------------------------------\n")
+
 if __name__ == "__main__":
     with open("output.txt", "w", ) as f:
         sys.stdout = Tee(sys.stdout, f)
@@ -546,7 +565,10 @@ if __name__ == "__main__":
                     i += 1
             print_summary_packet_times(total_packet_time_group)
 
+        # Metadata about the capture
+        # Calculate Metadata about the capture
 
+        # print_metadata()
 
         # display the histogram for payload distribution
         summaryStatistics.make_histogram(packets)
