@@ -658,14 +658,11 @@ if __name__ == "__main__":
         else:
             # For existing files, we can estimate duration from timestamps
             all_timestamps = []
+
             for timeline in packet_timelines:
                 all_timestamps.extend(timeline)
-            if len(all_timestamps) >= 2:
-                start_time = cleanNParse.time_to_microseconds(
-                    all_timestamps[0])
-                end_time = cleanNParse.time_to_microseconds(
-                    all_timestamps[-1])
-                capture_duration = (end_time - start_time) / \
+            if len(all_timestamps) != 0:
+                capture_duration = sum(all_timestamps) / \
                     1_000_000  # convert to seconds
             else:
                 capture_duration = 0.0
