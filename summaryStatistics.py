@@ -140,6 +140,117 @@ def make_histogram(packets):
     plt.title("Distribution of packets by payload size")
     plt.show()
 
+
+def plot_protocol_distribution(type_counts):
+    """
+    Plot a pie chart of protocol distribution using existing counts.
+    Arguments:
+    - type_counts (dict): Counts keyed by protocol name.
+    """
+    total = sum(type_counts.values())
+    if total == 0:
+        print("[!] No packets available to plot protocol distribution.")
+        return
+
+    labels = []
+    values = []
+    for proto, count in type_counts.items():
+        if count <= 0:
+            continue
+        labels.append(proto.upper())
+        values.append(count)
+
+    if not values:
+        print("[!] No non-zero protocol counts to plot.")
+        return
+
+    fig, ax = plt.subplots()
+    ax.pie(values, labels=labels, autopct="%1.1f%%", startangle=90)
+    ax.axis("equal")  # Keep the pie circular.
+    plt.title("Protocol Distribution")
+    plt.show()
+
+
+def calculate_ipv4_header_checksum(packet):
+    """
+    Calculate the IPv4 header checksum for a packet represented as a hex string.
+    Arguments:
+    - packet (str): The full Ethernet frame as a hex string with no separators.
+    Returns:
+        tuple[int | None, int | None]: (calculated_checksum, stored_checksum).
+                                       Returns (None, None) if the packet is
+                                       not IPv4 or does not contain a full
+                                       header.
+    """
+    ethernet_header_len = 14 * 2
+    min_ip_header_len = 20  # bytes
+
+    if len(packet) < ethernet_header_len + min_ip_header_len * 2:
+        return None, None
+
+    # EtherType is bytes 12-13 -> hex chars 24-27.
+    if packet[24:28].lower() != "0800":
+        return None, None
+
+    ip_header_start = ethernet_header_len
+    ihl = int(packet[ip_header_start:ip_header_start + 2], 16) & 0x0F
+    if ihl < 5:  # invalid header length
+        return None, None
+
+    ip_header_len_bytes = ihl * 4
+    ip_header_len_chars = ip_header_len_bytes * 2
+    if len(packet) < ip_header_start + ip_header_len_chars:
+        return None, None
+
+    ip_header = packet[ip_header_start:ip_header_start + ip_header_len_chars]
+    stored_checksum = int(ip_header[20:24], 16)
+
+    header_for_checksum = ip_header[:20] + "0000" + ip_header[24:]
+
+    checksum = 0
+    for i in range(0, len(header_for_checksum), 4):
+        word = int(header_for_checksum[i:i+4], 16)
+        checksum += word
+        # fold any carry back into the lower 16 bits
+        checksum = (checksum & 0xFFFF) + (checksum >> 16)
+
+    checksum = (~checksum) & 0xFFFF
+    return checksum, stored_checksum
+
+
+def ipv4_checksum_stats(packets):
+    """
+    Validate IPv4 header checksums across packets.
+    Arguments:
+    - packets (List[str]): List of packets, each packet is a byte string.
+    Returns:
+        dict: Summary counts for checksum validation.
+    """
+    stats = {
+        "total_ipv4": 0,
+        "valid": 0,
+        "invalid": 0,
+        "skipped": 0,  # IPv4 packets missing enough header bytes
+    }
+
+    for packet in packets:
+        if len(packet) < 28 or packet[24:28].lower() != "0800":
+            continue
+
+        stats["total_ipv4"] += 1
+        calculated, stored = calculate_ipv4_header_checksum(packet)
+        if calculated is None or stored is None:
+            stats["skipped"] += 1
+            continue
+
+        if calculated == stored:
+            stats["valid"] += 1
+        else:
+            stats["invalid"] += 1
+
+    return stats
+
+
 def parse_packets_from_pcap(pcap_path):
     '''
     Parse packets from a pcap file into a list of packets, each represented as

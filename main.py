@@ -355,6 +355,29 @@ def print_summary(total_packets, eth_frame_count, avg_eth_data_size,
     print("--------------------------------\n")
 
 
+def print_ipv4_checksum_summary(checksum_stats):
+    """
+    Prints summary information about IPv4 header checksum validation.
+    Arguments:
+    - checksum_stats (dict): Summary data produced by ipv4_checksum_stats.
+    """
+    print("--- IPv4 Header Checksums ---")
+    if checksum_stats["total_ipv4"] == 0:
+        print("No IPv4 packets found; checksum validation skipped.")
+        print("--------------------------------\n")
+        return
+
+    print(f"IPv4 packets checked: {checksum_stats['total_ipv4']}")
+    print(f"Valid checksums: {checksum_stats['valid']}")
+    print(f"Invalid checksums: {checksum_stats['invalid']}")
+    if checksum_stats["skipped"] > 0:
+        print(
+            f"Skipped (truncated/unsupported headers): "
+            f"{checksum_stats['skipped']}"
+        )
+    print("--------------------------------\n")
+
+
 def group_packet_times(packet_times, packets):
     """
     Groups the amount of time a packet took to arrive (relative to the previous one) based on packet type.
@@ -595,6 +618,7 @@ if __name__ == "__main__":
         (total_packets, eth_frame_count, avg_eth_data_size,
          ipv4_count, ipv6_count, tcp_count, udp_count,
          icmp_count) = parse_info(packets)
+        checksum_stats = summaryStatistics.ipv4_checksum_stats(packets)
 
         # print summary of analysis
         print("[+] Packet analysis complete.")
@@ -603,6 +627,10 @@ if __name__ == "__main__":
         print_summary(total_packets, eth_frame_count,
                       avg_eth_data_size, ipv4_count, ipv6_count,
                       tcp_count, udp_count, icmp_count)
+        print_ipv4_checksum_summary(checksum_stats)
+        # Visualizations
+        protocol_counts = analyze_packet_types(packets)
+        summaryStatistics.plot_protocol_distribution(protocol_counts)
 
         if len(packet_time_groups) > 0:
             # Combine the packet arrival times of every file into a single dictionary.
