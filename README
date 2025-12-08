@@ -1,3 +1,5 @@
+## PART 1 
+
 Design Decisions:
 
 Entry point is main.py.
@@ -23,14 +25,25 @@ The summary statistics are applied to all packets across all files. Thus, the to
 
 The final summary statistics output is to output.txt.
 
-Visualization of the packet arrival time was done through calculating the amount of time the n+1th packet took
+# PART 2 ADDITIONS
+
+### Required:
+
+1. Visualization of the packet arrival time was done through calculating the amount of time the n+1th packet took
 relative to the nth packet. Thus, the first packet is not associated with a packet arrival time.
 
+2. The checksum portion of our project provides summary information about IPv4 header checksum validation.
+
+3. We added the additional required metadata about the capture (number of packets, time span, avg packet
+size, total bytes – IP payloads)
+
 Additional features choosen:
-    Protocol Distribution
+    1. Protocol Distribution
         Was already part of the original project.
-    Summary Statistics on the packet arrival times
+        The output report the counts of IPv4, IPv6, TCP, UDP, and ICMP protocols.
+    2. Summary Statistics on the packet arrival times
         Packet arrival times are calculated based on the amount of time a packet took to arrive after the arrival of the previous one. The first packet is not counted in, as its value is always zero.
+    3. TODO
 
 k12 file example (individual bytes of each packet are only separated by |, NOT newlines as displayed in this doc):
 +---------+---------------+----------+
