@@ -46,8 +46,11 @@ Additional features choosen:
     2. Summary Statistics on the packet arrival times
         Packet arrival times are calculated based on the amount of time a packet took to arrive after the arrival of the previous one. The first packet is not counted in, as its value is always zero.
     3. Protocol Distribution Visualization
-        The distribution of protocols among all packets is visualized as a pie chart.
-        Checks the distribution of IPv4, IPv6, ICMP, TCP, and UDP packets. Anything else is lumped under "other."
+        The distribution of protocols among all packets is visualized as two pie charts.
+            The first pie chart visualizes the distribution of all distinct ip protocol types used.
+             "Other" refers to any that isn't IPv4 or IPv6.
+            The second pie chart visualizes the distribution of all distinct ip protocol types used.
+             "Other" refers to any that isn't ICMP, TCP, and UDP.
 
 k12 file example (individual bytes of each packet are only separated by |, NOT newlines as displayed in this doc):
 +---------+---------------+----------+

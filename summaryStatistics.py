@@ -89,7 +89,7 @@ def generate_timestamp_graph_by_microseconds(timegaps, filename):
     ax.bar(x, np.array(timegaps))
     ax.set_xticks(np.arange(len(timegaps)), minor=True)
     ax.set_ylabel("Time (microseconds)")
-    ax.set_xlabel("The gap between the n-1 and n packets' instance of arrival")
+    ax.set_xlabel("The gap between the n and n+1 packets' instance of arrival")
     plt.title(f"Time it took for some packet to arrive, given the previous packet for file: {filename}")
     plt.show()
 
@@ -141,7 +141,7 @@ def make_histogram(packets):
     plt.show()
 
 
-def plot_protocol_distribution(type_counts):
+def plot_protocol_distribution(type_counts, subject):
     """
     Plot a pie chart of protocol distribution using existing counts.
     Arguments:
@@ -167,7 +167,7 @@ def plot_protocol_distribution(type_counts):
     fig, ax = plt.subplots()
     ax.pie(values, labels=labels, autopct="%1.1f%%", startangle=90)
     ax.axis("equal")  # Keep the pie circular.
-    plt.title("Protocol Distribution")
+    plt.title(f"Protocol Distribution by: {subject}")
     plt.show()
 
 
