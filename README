@@ -30,7 +30,8 @@ The final summary statistics output is to output.txt.
 ### Required:
 
 1. Visualization of the packet arrival time was done through calculating the amount of time the n+1th packet took
-relative to the nth packet. Thus, the first packet is not associated with a packet arrival time.
+relative to the nth packet. Thus, the first packet is not associated with a packet arrival time. Counting of packets
+starts at 0.
 
 2. The checksum portion of our project provides summary information about IPv4 header checksum validation.
 
@@ -40,12 +41,13 @@ size, total bytes – IP payloads)
 Additional features choosen:
     1. Protocol Distribution
         Was already part of the original project.
-        The output report the counts of IPv4, IPv6, TCP, UDP, and ICMP protocols.
+        The output explicitly report the counts of IPv4, IPv6, TCP, UDP, and ICMP protocols. Anything else is
+        lumped under "other."
     2. Summary Statistics on the packet arrival times
         Packet arrival times are calculated based on the amount of time a packet took to arrive after the arrival of the previous one. The first packet is not counted in, as its value is always zero.
     3. Protocol Distribution Visualization
         The distribution of protocols among all packets is visualized as a pie chart.
-        Only checks the distribution of IPv4, IPv6, ICMP, TCP, and UDP packets.
+        Checks the distribution of IPv4, IPv6, ICMP, TCP, and UDP packets. Anything else is lumped under "other."
 
 k12 file example (individual bytes of each packet are only separated by |, NOT newlines as displayed in this doc):
 +---------+---------------+----------+

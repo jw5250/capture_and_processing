@@ -223,16 +223,20 @@ def analyze_packet_types(packets):
         "tcp": 0,
         "udp": 0,
         "icmp": 0,
+        "other": 0, 
     }
 
     for pkt in packets:
         if len(pkt) < 28:
+            type_counts["other"] += 1
             continue  # Not enough data for Ethernet header
         # Each byte is two nibbles/characters.
         eth_type = pkt[24:28]
         if eth_type == '0800':  # IPv4
+
             type_counts["ipv4"] += 1
             if len(pkt) < 46:
+                type_counts["other"] += 1
                 continue  # Not enough data for IP header
             protocol = pkt[46:48]  # Get the 23rd byte.
             if protocol == '06':
@@ -241,9 +245,14 @@ def analyze_packet_types(packets):
                 type_counts["udp"] += 1
             elif protocol == '01':
                 type_counts["icmp"] += 1
+            else:
+                type_counts["other"] += 1
+
         elif eth_type == '86dd':  # IPv6
+
             type_counts["ipv6"] += 1
             if len(pkt) < 40:
+                type_counts["other"] += 1
                 continue  # Not enough data for IPv6 header
             next_header = pkt[40:42]
             if next_header == '06':
@@ -252,7 +261,10 @@ def analyze_packet_types(packets):
                 type_counts["udp"] += 1
             elif next_header == '3a':
                 type_counts["icmp"] += 1
-
+            else:
+                type_counts["other"] += 1
+        else:
+            type_counts["other"] += 1
     return type_counts
 
 
@@ -263,7 +275,7 @@ def parse_info(packets):
     - Total # of 802.3 and DIX Ethernet frames.
     - Avg size of the Ethernet data field.
     - Number of IPv4 and IPv6 packets.
-    - Total number of TCP, UDP, and ICMP packets.
+    - Total number of TCP, UDP, ICMP, IPv4, IPv6, packets and anything that isn't.
     Returns:
         tuple: (total packets (int),
                 total number of each type of ethernet frame (tuple(int, int)),
@@ -272,7 +284,8 @@ def parse_info(packets):
                 ipv6 packet count (int),
                 tcp packet count (int),
                 udp packet count (int),
-                icmp packet count (int))
+                icmp packet count (int),
+                other packet count (int))
     """
 
     # - Total number of packets captured.
@@ -293,11 +306,11 @@ def parse_info(packets):
     # placeholders are 0 or 0.0
     return (total_packets, num_ethernet_frame_types, avg_eth_data_size,
             type_counts["ipv4"], type_counts["ipv6"],
-            type_counts["tcp"], type_counts["udp"], type_counts["icmp"])
+            type_counts["tcp"], type_counts["udp"], type_counts["icmp"], type_counts["other"])
 
 
 def print_summary(total_packets, eth_frame_count, avg_eth_data_size,
-                  ipv4_count, ipv6_count, tcp_count, udp_count, icmp_count):
+                  ipv4_count, ipv6_count, tcp_count, udp_count, icmp_count, other_count):
     """
     Prints a summary of the packet analysis.
     Arguments:
@@ -309,6 +322,7 @@ def print_summary(total_packets, eth_frame_count, avg_eth_data_size,
     - tcp_count (int): Number of TCP packets.
     - udp_count (int): Number of UDP packets.
     - icmp_count (int): Number of ICMP packets.
+    - other_count (int): Number of packets thare anot any of the five types listed.
     Returns:
         None
     """
@@ -322,7 +336,7 @@ def print_summary(total_packets, eth_frame_count, avg_eth_data_size,
     print(f"TCP packets: {tcp_count}")
     print(f"UDP packets: {udp_count}")
     print(f"ICMP packets: {icmp_count}")
-
+    print(f"Other packets: {other_count}")
     print("--------------------------------\n")
 
     # print summary statistics
@@ -334,6 +348,7 @@ def print_summary(total_packets, eth_frame_count, avg_eth_data_size,
         "TCP": tcp_count,
         "UDP": udp_count,
         "ICMP": icmp_count,
+        "Other": other_count,
     }
     most_common_type = max(most_common, key=lambda x: most_common[x])
     print(f"  {most_common_type} ({most_common[most_common_type]} packets)")
@@ -617,7 +632,7 @@ if __name__ == "__main__":
         print("[+] Analyzing packets...")
         (total_packets, eth_frame_count, avg_eth_data_size,
          ipv4_count, ipv6_count, tcp_count, udp_count,
-         icmp_count) = parse_info(packets)
+         icmp_count, other_count) = parse_info(packets)
         checksum_stats = summaryStatistics.ipv4_checksum_stats(packets)
 
         # print summary of analysis
@@ -626,7 +641,7 @@ if __name__ == "__main__":
         # print summary
         print_summary(total_packets, eth_frame_count,
                       avg_eth_data_size, ipv4_count, ipv6_count,
-                      tcp_count, udp_count, icmp_count)
+                      tcp_count, udp_count, icmp_count, other_count)
         print_ipv4_checksum_summary(checksum_stats)
         # Visualizations
         protocol_counts = analyze_packet_types(packets)
