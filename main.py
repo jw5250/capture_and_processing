@@ -3,8 +3,6 @@ import sys
 from pathlib import Path
 import os
 import re
-
-import runCommand
 import cleanNParse
 import summaryStatistics
 from typing import Any
@@ -15,6 +13,7 @@ authors: Anishya Thinesh (amt2622@rit.edu), Justin Wu (jw5250@rit.edu),
          Evan Lonczak    (egl1669@rit.edu)
 """
 
+import subprocess
 
 # Create a "tee" class to duplicate prints
 class Tee:
@@ -177,7 +176,7 @@ def capture_to_pcap(interface, bytes, num_packets, pcap_path):
     ]
     print(f"""[+] Capturing {num_packets} packets with {bytes} bytes each on
           {interface} -> {pcap_path.name}""")
-    runCommand.run(cmd)
+    cleanNParse.run(cmd)
 
 
 def parse_packets_from_pcap(pcap_path):
@@ -192,7 +191,7 @@ def parse_packets_from_pcap(pcap_path):
     '''
     cmd = ["tshark", "-r", str(pcap_path), "-x",
            "--hexdump", "noascii", "-q", "-n"]
-    proc = runCommand.run(cmd)
+    proc = cleanNParse.run(cmd)
     text = proc.stdout.decode(errors="ignore").splitlines()
     return cleanNParse.parse_bytestream(text)
 
@@ -479,7 +478,9 @@ def print_summary_packet_times(packet_groups):
     packet_times = []
     for packet_type, time_gaps in packet_groups.items():
         packet_times.extend(time_gaps)
-
+    if len(packet_times) == 0:
+        print("\nNot enough packets to analyze packet times.")
+        return
     print("\n--- Packet Time Analysis Summary ---")
     avg_pkt_time = sum(packet_times)/(len(packet_times))
     print(f"Average packet time (in microseconds):{avg_pkt_time}")
@@ -663,8 +664,9 @@ if __name__ == "__main__":
             # Combine the packet arrival times of every file into a single dictionary.
             i = 0
             for packet_timeline in packet_timelines:
-                summaryStatistics.generate_timestamp_graph_by_microseconds(
-                    packet_timeline, files_choosen[i])
+                if(len(packet_timeline) > 0):
+                    summaryStatistics.generate_timestamp_graph_by_microseconds(
+                        packet_timeline, files_choosen[i])
                 i += 1
             total_packet_time_group = packet_time_groups[0]
             for key in packet_time_groups[0].keys():
@@ -674,7 +676,8 @@ if __name__ == "__main__":
                         total_packet_time_group[key].append(time_gap)
                     i += 1
             print_summary_packet_times(total_packet_time_group)
-
+        else:
+            print("Not enough packets to visualize the timeline.")
         # Metadata about the capture
 
         # Calculations for metadata

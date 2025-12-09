@@ -1,5 +1,6 @@
-import runCommand
 import sys
+import subprocess
+
 
 MICROSECONDS_IN_A_SECOND = 1000000
 
@@ -8,6 +9,28 @@ SECONDS_IN_A_MINUTE = 60
 MINUTES_IN_A_HOUR = 60
 
 HOURS_IN_A_DAY = 24
+
+def run(cmd):
+    '''
+        Runs a command using subprocess and handles errors.
+        Arguments:
+        - cmd (List[str]): Command and arguments to run.
+        Returns:
+            subprocess.CompletedProcess: Result of the command execution.
+    '''
+    try:
+        return subprocess.run(cmd, stdout=subprocess.PIPE,
+                              stderr=subprocess.PIPE, check=True)
+    except FileNotFoundError:
+        print("Error: tshark not found on PATH. Install Wireshark/tshark or "
+              "add it to PATH.", file=sys.stderr)
+        sys.exit(1)
+    except subprocess.CalledProcessError as e:
+        print(f"Command failed: {' '.join(cmd)}", file=sys.stderr)
+        if e.stderr:
+            print(e.stderr.decode(errors="ignore"), file=sys.stderr)
+        sys.exit(1)
+
 
 
 def parse_bytestream(text):
@@ -177,7 +200,7 @@ def parse_time_stamps_pcapng(filename):
                                          third is seconds, fourth is microseconds.
     '''
     cmd = ["tshark", "-r", filename, "-u", "hms", "-t", "ad"]
-    proc = runCommand.run(cmd)
+    proc = run(cmd)
     packetTimestamps = []
     text = proc.stdout.decode(errors="ignore").splitlines()
     for line in text:
